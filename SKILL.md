@@ -30,7 +30,7 @@ Install: `curl -fsSL https://cli.yard.sh | sh` (Windows: `irm https://cli.yard.s
 
 ## Ground rules
 
-- **Manage with the CLI, integrate with the API.** Creating projects, pricing, products, releases, pages, services, coupons and reading users and sales is CLI work. The REST API is for shipped software: license validation, updates, managing existing subscriptions, reading and fulfilling a user's products, Yard Auth in external apps. Never create a project over HTTP.
+- **Manage with Yard's MCP server or the CLI, integrate with the API.** Creating projects, pricing, products, releases, pages, services, coupons and reading users and sales is management work: through [Yard's MCP tools](#yards-mcp-server) when they are connected, otherwise the CLI. The REST API is for shipped software: license validation, updates, managing existing subscriptions, reading and fulfilling a user's products, Yard Auth in external apps. Never create a project over HTTP.
 - **Non-interactive only.** Use `--json` (result on stdout, logs on stderr) and `--spec <file|->` (JSON input). Never pipe answers into a prompt; bare `yard init` is for humans.
 - **Teams own everything.** Projects, coupons, API keys and payouts belong to a team, and the CLI acts as the active team (`yard team --json` → `.active_team`), which is stored on the account and shared with the dashboard. Projects live under the team's username: `https://<team>.yard.sh/<slug>/`.
 - **Check entitlements, never assume them.** Read `yard me --json` → `.team_permissions` before proposing a feature (`.permissions` is the user's own and gates nothing on a project). Never quote a plan's features from memory.
@@ -61,6 +61,15 @@ Then cover what the project type needs:
 - **Never build auth.** Yard Auth signs visitors in and gives the service trusted `X-Yard-*` headers; `"access": "users"` is a complete paywall with no code. Gate per-tier features on `X-Yard-Tier-Key` (the tier's stable key), never on the display name. Signed-out visitors who need a stable identity (guest play) get one from `POST __yard/auth/guest` and arrive with `X-Yard-Guest-Id`; never mint your own token. Any access other than `public` needs `.team_permissions.yard_auth`.
 - **Loop:** `yard dev` (everything at `http://localhost:9875/<slug>/`) → `yard push` (into a draft release; nothing serves a draft) → `yard releases publish <tag>` (the go-live step: the release lands in the `Production` channel the project follows) → `yard sandbox list` (deploy status of the project and each sandbox). To try it first: `yard sandbox pin` (hold the storefront), publish, `yard sandbox pin <tag> --sandbox preview`, check it, then `yard sandbox unpin`.
 - **Realtime** (chat rooms, presence, multiplayer) belongs in rooms, not in a table: [rooms.md](references/rooms.md).
+
+## Yard's MCP server
+
+When Yard's MCP tools are connected (`https://mcp.yard.sh/`), manage through them; they need no CLI install or `yard login`. The user approved them for one team, and the team sees each change as yours. `whoami` names the team and what its plan includes; connecting needs `.team_permissions.agent_access`. `yard dev` still needs the CLI.
+
+- Read `yard://docs/getting-started/mcp-server` (or call `read_yard_docs` with that topic) first; `read_yard_docs` reads every page of Yard's docs.
+- Every change takes an optional `note`: one sentence on what you're doing and why. The user's team reads it beside the change, and watches your calls live in the dashboard.
+- A change to something that exists passes the `base_hash` you read for it: a file's `content_hash`, or one of the release's `versions` from `get_release`. `stale_base` means it changed since; read it again and make your change to what it holds now.
+- Text files go inline with `write_file`. Binary files, text over about 1 MB, product icons and release downloads go through `create_upload_link`: `PUT` the bytes to the link, then call `finalize_upload`.
 
 ## References
 

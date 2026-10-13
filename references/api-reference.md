@@ -1,6 +1,6 @@
 # Yard API Reference
 
-> **What this API is for.** Integrating Yard into shipped software: validating licenses, reading release metadata, managing your users' existing subscriptions, reading and fulfilling the [products](products.md) they buy, and signing your users in with [Yard Auth](#yard-auth-for-external-apps). An agent managing the team's own catalog (projects, pricing, products, releases, pages, services, coupons, users, sales) uses the **Yard CLI** instead; see [cli-commands.md](./cli-commands.md).
+> **What this API is for.** Integrating Yard into shipped software: validating licenses, reading release metadata, managing your users' existing subscriptions, reading and fulfilling the [products](products.md) they buy, and signing your users in with [Yard Auth](#yard-auth-for-external-apps). An agent managing the team's own catalog (projects, pricing, products, releases, pages, services, coupons, users, sales) uses [Yard's MCP server](../SKILL.md#yards-mcp-server) when it is connected, or the **Yard CLI**; see [cli-commands.md](./cli-commands.md).
 >
 > Create an API key with the scopes you need at **https://dash.yard.sh/configure/api-keys?action=create**.
 
@@ -69,7 +69,7 @@ Management scopes act on the team's account, its release files and its users; ke
 | `releases:write` | Create, edit, publish and archive releases, manage channels, and read draft contents |
 | `sandboxes:read` | List sandboxes and the releases they serve |
 | `sandboxes:write` | Create, rename and delete sandboxes, and pin or roll back what they serve |
-| `services:read` | List services, deployments, logs and metrics, and the names of secrets |
+| `services:read` | List services, deployments, logs and metrics, secret names and applied migrations |
 | `services:write` | Create, update and delete services, their files and their migrations |
 | `secrets:write` | Set and delete secret values |
 | `db:query` | Run SQL, including writes, against every database of the project (sensitive) |
@@ -118,6 +118,8 @@ Everything below takes `Authorization: Bearer yard_…` with the listed scope. T
 | `GET` | `/v1/projects/{id}/project-releases/{releaseId}/files/{fileId}/download` | `releases:read` | Download a release file (302 to the file) |
 
 A key holding only `releases:read` sees public channels and no drafts or archived releases; a key that also holds `releases:write` sees everything a session sees.
+
+Release files go through upload links (`releases:write`): `POST /v1/projects/{id}/downloads/uploads?release=<release id>` with `filename` and `size_bytes`, a `PUT` of the bytes to the answered `url` with its `headers`, then `POST /v1/projects/{id}/downloads/uploads/{uploadId}/finalize?release=<release id>` with `filename`. Both `POST`s take the file's base ([Release writes need a base](#release-writes-need-a-base)): `If-None-Match: *` for a new filename, or the `content_hash` of the file it replaces.
 
 ### Licenses
 
@@ -250,6 +252,17 @@ These need a signed-in session (CLI or dashboard) whatever scopes a key holds:
 
 ---
 
+## Release writes need a base
+
+The dashboard, the CLI and agents may change the same release, so every write to a release's contents says what it was based on: its files, pricing, products, product icons, page content, services, download settings and files, gallery, and `PATCH /v1/projects/{id}/project-releases/{releaseId}`. Creating, publishing, promoting and archiving a release take no base.
+
+- `If-Match: "<version>"`: a file's `content_hash`, a product icon's `sha256`, or the matching entry of the release's `versions` from `GET /v1/projects/{id}/project-releases/{releaseId}` (`release`, `pricing`, `products`, `settings` for the download buttons, `landing_page`, `gallery`, and `services` by name).
+- `If-None-Match: *`: create a file that must not exist yet.
+
+A write answers its new version in `ETag`. A base that moved is `412` with `stale_base`: read it again and redo the change on what it holds now. A write with no base is `428` with `base_required`. Details: https://docs.yard.sh/v1/api/getting-started/conditional-writes.
+
+---
+
 ## Error Response Format
 
 All errors return a JSON body:
@@ -262,7 +275,7 @@ All errors return a JSON body:
 }
 ```
 
-`error_code` is a lowercase code to branch on, present on the errors a client may handle on its own: `unauthorized`, `insufficient_scope`, `upgrade_required`, `no_team`, `rate_limited`, the plan limits such as `project_limit_reached` and `storage_limit_reached`, `not_consumable`, `purchase_not_paid` and `purchase_refunded` from the fulfill endpoints, and `yard_auth_unavailable` from the Yard Auth bearer endpoints. Never match on the `error` text. `error_id` identifies the request for support.
+`error_code` is a lowercase code to branch on, present on the errors a client may handle on its own: `unauthorized`, `insufficient_scope`, `upgrade_required`, `stale_base`, `base_required`, `no_team`, `rate_limited`, the plan limits such as `project_limit_reached` and `storage_limit_reached`, `not_consumable`, `purchase_not_paid` and `purchase_refunded` from the fulfill endpoints, and `yard_auth_unavailable` from the Yard Auth bearer endpoints. Never match on the `error` text. `error_id` identifies the request for support.
 
 Common HTTP status codes:
 - `400`: Bad request (validation error)
@@ -270,5 +283,7 @@ Common HTTP status codes:
 - `403`: Forbidden (insufficient scope, or endpoint requires session auth)
 - `404`: Not found
 - `409`: Conflict (e.g., duplicate resource)
+- `412`: The base a release write sent has moved (`stale_base`)
+- `428`: A release write sent no base (`base_required`)
 - `429`: Rate limited
 - `500`: Internal server error

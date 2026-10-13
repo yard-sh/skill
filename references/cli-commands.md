@@ -200,9 +200,9 @@ A release is a project-wide snapshot (landing page, pricing, products, download 
 
 ### yard releases publish [tag]
 
-Uploads any `--file` assets into the draft, then publishes it under the tag into a channel (default `Production`, which the project follows, so it is live). Anything `yard push` already staged in the draft ships with it.
+Uploads any `--file` assets into the draft (each straight to storage, up to 5 GiB), then publishes it under the tag into a channel (default `Production`, which the project follows, so it is live). Anything `yard push` already staged in the draft ships with it.
 
-Flags: `--project`, `--dir`, `--name`, `--notes`, `--notes-file <path|->`, `--file <path>` (repeatable), `--channel <name>` (must exist; channels are created in the dashboard, up to `max_channels` per project with Production included: Basic 1, Pro 10), `--release <id|tag>` (must still be a draft), `--spec <file|->`, `--json`. With `--spec` the spec is the whole request: the tag argument, `--project`, `--name`, `--notes`, `--notes-file`, `--file` and `--channel` are refused (set the field instead); `--dir`, `--release` and `--json` still apply. Tags are unique per project (`409` on reuse).
+Flags: `--project`, `--dir`, `--name`, `--notes`, `--notes-file <path|->`, `--file <path>` (repeatable), `--channel <name>` (must exist; create one with `yard channels create`, up to `max_channels` per project with Production included: Basic 1, Pro 10), `--release <id|tag>` (must still be a draft), `--spec <file|->`, `--json`. With `--spec` the spec is the whole request: the tag argument, `--project`, `--name`, `--notes`, `--notes-file`, `--file` and `--channel` are refused (set the field instead); `--dir`, `--release` and `--json` still apply. Tags are unique per project (`409` on reuse).
 
 ```jsonc
 {
@@ -245,7 +245,7 @@ Returns an archived release to the channel it was archived from (`Production` if
 
 ## yard channels list
 
-The project's release channels (read-only; create, rename, delete and reorder them in the dashboard). Flags: `--json`, `--project`, `--dir`.
+The project's release channels (reorder them in the dashboard). Flags: `--json`, `--project`, `--dir`.
 
 ```
 CHANNEL      RELEASES  LATEST         FOLLOWED BY        VISIBILITY  PROTECTED
@@ -254,6 +254,18 @@ Beta         2         v1.5.0-beta.1  preview, staging   private
 ```
 
 `LATEST` is the release a new follower would serve (`-` when none). `--json`: `{ "project", "channels": [{ id, name, protected, visibility, created_at, release_count, latest_version, sandboxes }] }`, where `""` in `sandboxes` is the project itself.
+
+## yard channels create \<name\>
+
+Adds a channel, private and empty, at the right end of the board. Names are 2-60 letters, digits or hyphens, starting with a letter, and not `order`; a name the project already has, `Production` included, is a `409`. `max_channels` caps how many a project has, Production included (Basic 1, Pro 10; over it is `403 channel_limit_reached`). Flags: `--json`, `--project`, `--dir`.
+
+## yard channels update \<channel\>
+
+`--name <new>` renames it and `--visibility public|private` sets who may reach it; at least one is required. Apps check a public channel for updates by name, so renaming it or making it private stops them finding it. Production can't be renamed or made private. Flags: `--json`, `--project`, `--dir`.
+
+## yard channels delete \<channel\>
+
+Moves its releases and whatever follows it (the project or sandboxes) into `--move-to` (default `Production`), then deletes it. The followers redeploy and may serve a different release right away. Asks first unless `--yes`. Production can't be deleted. Flags: `--move-to`, `--yes`, `--json` (`{ "project", "channel", "moved_to", "deleted" }`), `--project`, `--dir`.
 
 ---
 
@@ -377,7 +389,7 @@ Every project command walks up from the cwd to the directory holding `.yard/sett
 - `pricing.tiers` / `downloads.buttons`: when present, a push replaces the release's tiers or download buttons to match exactly. Give every tier a `key`: without one a renamed tier gets a new key and becomes a different tier. Shapes: [releases-and-updates.md](releases-and-updates.md#syncing-releases-from-github).
 - `products`: when present (`[]` included), a push replaces the release's products to match exactly and uploads each declared `icon` (a path relative to the directory holding `.yard`) whose bytes changed; a product without `icon` loses its icon. Absent, products stay dashboard-managed. Fields: [products.md](products.md#the-products-block).
 
-A push uploads `settings.json` itself, which is how deploys learn each service's settings, so changing one is an edit plus a push. The server keeps each release's copy in step with dashboard edits, so `yard status` can show a config diff you did not make; `yard pull` brings it down (your `project_slug` is kept) along with product icons, and `yard pull --force` discards local changes. Older layouts are rejected; see [troubleshooting.md](troubleshooting.md#yardsettingsjson-uses-an-old-service-layout).
+A push uploads `settings.json` itself, which is how deploys learn each service's settings, so changing one is an edit plus a push. The server keeps each release's copy in step with dashboard edits, so `yard status` can show a config diff you did not make; `yard pull` brings it down, replacing your copy (your `project_slug` is kept), along with product icons. Older layouts are rejected; see [troubleshooting.md](troubleshooting.md#yardsettingsjson-uses-an-old-service-layout).
 
 **Common flags:** `--project <slug-or-uuid>`, `--dir <path>`, `--release <id|tag>` (default: your open draft, or a new draft seeded from the newest published release; required when several drafts are open; a published release is edited in place and is live on save if something serves it), `--json`, `--yes` (skip prompts: a push removing files missing locally, pushing into a served release).
 
@@ -395,11 +407,11 @@ Scaffolds the landing-page directory in an existing project: pulls the draft's p
 
 ### yard status
 
-What `yard push` would change, per bundle, without writing: `to_upload`, `unchanged`, `remote_only` (in the release, not local: the next push removes them unless `--keep`); `product_icons` also lists `missing` (declared in settings.json, absent locally, which fails a push). It also lists who serves that release and each one's deploy status. Nothing serves a draft, so after a push `serving` is empty; `yard sandbox list` covers every place regardless of release.
+What `yard push` would change, per bundle, without writing: `to_upload`, `unchanged`, `remote_only` (in the release, not local: the next push removes them unless `--keep`), `release_changed` (changed only in the release since the last pull or push; `yard pull` brings them) and `conflicts` (changed on both sides; the push would stop); `product_icons` also lists `missing` (declared in settings.json, absent locally, which fails a push). It also lists who serves that release and each one's deploy status. Nothing serves a draft, so after a push `serving` is empty; `yard sandbox list` covers every place regardless of release.
 
 ```json
 { "project": "my-slug", "release": "9f3e…", "version": "1.2.0", "draft": false,
-  "page": { "dir": "…/.yard/landing-page", "to_upload": ["index.html"], "unchanged": ["styles.css"], "remote_only": [] },
+  "page": { "dir": "…/.yard/landing-page", "to_upload": ["index.html"], "unchanged": ["styles.css"], "remote_only": [], "release_changed": [], "conflicts": [] },
   "serving": [{ "sandbox": "", "deploy": "stale" }] }
 ```
 
@@ -409,15 +421,17 @@ A release's files grouped by bundle (`page`, `service`, …), each with `path`, 
 
 ### yard push
 
-Makes the draft match your files: uploads every changed local file (landing page, each service, migrations, settings.json, product icons), skips unchanged ones, and removes files the release holds that are missing locally, including files added in the dashboard or now matched by `ignore_files`. An interactive push lists the removals and asks once; `--yes` and `--json` skip the question, and without a terminal it refuses unless one is passed. `--keep` leaves those files in the release. A bundle whose directory is missing locally is left as it is, and a push that would remove the landing page's `index.html` stops and names the fix (restore it, or `--keep`). Every bundle is validated before anything uploads. Output is one line per bundle (`service api: 3 added, 2 changed, 1 removed, 60 unchanged`); `--verbose` lists the files. Prints a `Review:` URL; going live is `yard releases publish <tag>`. The `pricing` and `products` blocks are applied with settings.json, which uploads first (an invalid one is a 400 naming the field before any other file uploads); product icons upload next, and a declared icon missing locally fails the push before anything uploads. When the live deployment has a room class the local settings no longer declare, push warns `class Old will be deleted with all its data on deploy`.
+Makes the draft match your files: uploads every changed local file (landing page, each service, migrations, settings.json, product icons), skips unchanged ones, and removes files the release holds that are missing locally, including files now matched by `ignore_files`. An interactive push lists the removals and asks once; `--yes` and `--json` skip the question, and without a terminal it refuses unless one is passed. `--keep` leaves those files in the release. A bundle whose directory is missing locally is left as it is, and a push that would remove the landing page's `index.html` stops and names the fix (restore it, or `--keep`). Every bundle is validated before anything uploads. Output is one line per bundle (`service api: 3 added, 2 changed, 1 removed, 60 unchanged`); `--verbose` lists the files. Prints a `Review:` URL; going live is `yard releases publish <tag>`. The `pricing` and `products` blocks are applied with settings.json, which uploads first (an invalid one is a 400 naming the field before any other file uploads); product icons upload next, and a declared icon missing locally fails the push before anything uploads. When the live deployment has a room class the local settings no longer declare, push warns `class Old will be deleted with all its data on deploy`.
+
+The working copy records what it last pulled or pushed in `.yard/sync/state.json` (it ignores itself in git), so a push sends only what changed here since. A file changed or added only in the release since then (in the dashboard or by an agent) is left for `yard pull` and listed in `release_changed`. A file changed on both sides stops the push before anything uploads, naming each file (`--json`: `{ "release", "conflicts": ["<bundle>/<path>: <how>"] }`, exit `1`): `yard pull` brings the release's copies down, replacing yours, or `yard push --force` replaces the release's with yours. With `--force`, or with no record for that release, the push compares only the two sides: every local file that differs uploads, and every file missing locally is removed unless `--keep`. Each upload names the copy it replaces, so a file that changes in the release during the push fails with `changed in the release during this push; run the push again` (exit `2`).
 
 ```json
 {
   "project": "my-slug", "release": "9f3e…", "version": "",
-  "page": { "dir": "…", "uploaded": ["index.html"], "skipped": [], "deleted": [], "remote_only": [] },
-  "services": { "api": { "dir": "…/api", "uploaded": ["_service.js"], "skipped": [], "deleted": [], "remote_only": [] } },
-  "config": { "dir": "…/.yard", "uploaded": ["settings.json"], "skipped": [], "deleted": [], "remote_only": [] },
-  "product_icons": { "dir": "…", "uploaded": ["gems"], "skipped": [], "deleted": [], "remote_only": [] },
+  "page": { "dir": "…", "uploaded": ["index.html"], "skipped": [], "deleted": [], "remote_only": [], "release_changed": [] },
+  "services": { "api": { "dir": "…/api", "uploaded": ["_service.js"], "skipped": [], "deleted": [], "remote_only": [], "release_changed": [] } },
+  "config": { "dir": "…/.yard", "uploaded": ["settings.json"], "skipped": [], "deleted": [], "remote_only": [], "release_changed": [] },
+  "product_icons": { "dir": "…", "uploaded": ["gems"], "skipped": [], "deleted": [], "remote_only": [], "release_changed": [] },
   "review_url": "https://dash.yard.sh/projects/my-slug/release?release=9f3e…",
   "live_url": null,
   "errors": []
@@ -428,7 +442,7 @@ A bundle the project lacks is absent; `product_icons` appears when settings.json
 
 ### yard pull
 
-Downloads a release (default: your draft) into the project: settings.json, the landing page, each product icon to the path settings.json gives it (default `.yard/products/<key>.<ext>`), and each service into its directory (a missing service directory is not created; `yard init` in a fresh directory is the flow that does). Files already identical are skipped; `--force` overwrites. `--json`: per bundle `{ destination, written, skipped }`.
+Downloads a release (default: your draft) into the project: settings.json, the landing page, each product icon to the path settings.json gives it (default `.yard/products/<key>.<ext>`), and each service into its directory (a missing service directory is not created; `yard init` in a fresh directory is the flow that does). Files already identical are skipped, and every other file the release holds replaces the local copy; `--force` rewrites identical ones too. A file the release deleted since the last pull or push is removed here, unless you changed it since (the next push then stops on it as a conflict). `--json`: per bundle `{ destination, written, skipped, removed }`.
 
 There is no publish flag on `push`. To discard draft changes, delete the draft in the dashboard and `yard pull --release <last-tag> --force`.
 
@@ -436,7 +450,7 @@ There is no publish flag on `push`. To discard draft changes, delete the draft i
 
 ## yard sandbox
 
-A sandbox is an optional private copy of the project at `/<slug>/@<sandbox>/`, with its own files, services, database, secrets and simulated commerce ([pricing-and-licensing.md](pricing-and-licensing.md#commerce-in-a-sandbox)). A project starts with none; sandboxes are a Pro feature and `max_sandboxes` caps how many (10; over it is `403 sandbox_limit_reached`). `visibility`, `channel`, `rollback`, `pin` and `unpin` act on the project itself unless `--sandbox <name>` names one; `create`, `rename` and `delete` take the sandbox's name, and `promote` names its target with `--to`. Shared flags: `--project`, `--dir`, `--json`; every `<release>` is a tag or UUID.
+A sandbox is an optional private copy of the project at `/<slug>/@<sandbox>/`, with its own files, services, database, secrets and simulated commerce ([pricing-and-licensing.md](pricing-and-licensing.md#commerce-in-a-sandbox)). A project starts with none; `max_sandboxes` caps how many (1 on Basic, 10 on Pro; over it is `403 sandbox_limit_reached`). `visibility`, `channel`, `rollback`, `pin` and `unpin` act on the project itself unless `--sandbox <name>` names one; `create`, `rename` and `delete` take the sandbox's name, and `promote` names its target with `--to`. Shared flags: `--project`, `--dir`, `--json`; every `<release>` is a tag or UUID.
 
 What serves:
 
@@ -482,7 +496,7 @@ A service's code ships inside a release (`yard push`, then publish); these comma
 - `yard service secrets set KEY=VALUE… | list | rm <name>`: `env.<NAME>` values for the project or one sandbox, shared by every service there; each change **redeploys those services** right away. Names are UPPER_SNAKE (not `DB` or `ASSETS`), ≤32 per target, ≤4 KiB each. Write-only: `list` shows names and times.
 - `yard service logs [--service NAME] [--limit ≤500] [--since 2h]`: console output, uncaught exceptions and abnormal outcomes from the last 24 h, a few seconds behind. A fresh service returns an empty list.
 - `yard db query [sql] [--file PATH]` (`-` for stdin): SQL against the project's or a sandbox's database, rows as JSON. Up to 10 kB of SQL, 1000 rows.
-- `yard db migrations list`: applied migrations merged with local files still pending (`{ sandbox, database, migrations: [{ name, applied, applied_at, local }] }`). With no database yet, every file is pending.
+- `yard db migrations list`: applied migrations merged with local files still pending (`{ sandbox, database, migrations: [{ name, applied, applied_at, release_tag, local }] }`, `applied_at` in RFC 3339). With no database yet, `database` is false and every file is pending; an unknown `--sandbox` is an error.
 - `yard db migrations mark-applied <file>`: records a migration as applied without running it; the repair step after fixing a file whose earlier statements already ran.
 - `yard migrate [--dir PATH] [--json]`: upgrades an older `.yard/settings.json` layout (folds per-directory service settings files onto their entries, renames `database` to `database_access`, stamps `"version": 8`). A services entry still carrying `objects` stops it with the parser's error; rename that key to `rooms` by hand. Idempotent. Unrelated to database migrations.
 
