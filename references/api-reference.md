@@ -119,7 +119,7 @@ Everything below takes `Authorization: Bearer yard_…` with the listed scope. T
 
 A key holding only `releases:read` sees public channels and no drafts or archived releases; a key that also holds `releases:write` sees everything a session sees.
 
-Release files go through upload links (`releases:write`): `POST /v1/projects/{id}/downloads/uploads?release=<release id>` with `filename` and `size_bytes`, a `PUT` of the bytes to the answered `url` with its `headers`, then `POST /v1/projects/{id}/downloads/uploads/{uploadId}/finalize?release=<release id>` with `filename`. Both `POST`s take the file's base ([Release writes need a base](#release-writes-need-a-base)): `If-None-Match: *` for a new filename, or the `content_hash` of the file it replaces.
+Release files go through upload links (`releases:write`): `POST /v1/projects/{id}/downloads/uploads?release=<release id>` with `filename` and `size_bytes`, a `PUT` of the bytes to the answered `url` with its `headers`, then `POST /v1/projects/{id}/downloads/uploads/{uploadId}/finalize?release=<release id>` with `filename`. Both `POST`s take the file's base ([Release writes need a base](#release-writes-need-a-base)): `If-None-Match: *` for a new filename, or the `content_hash` of the file it replaces. Finalize answers `202` and adds the file in the background: `GET /v1/projects/{id}/downloads/uploads/{uploadId}` every few seconds until `state` is `done` (with the release `file`) or `failed` (with `error`; finalize again, and on `503 finalize_interrupted` without uploading again).
 
 ### Licenses
 
