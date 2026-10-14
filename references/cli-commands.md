@@ -125,6 +125,8 @@ How many tiers a plan allows is `max_pricing_tiers`. A tier's `key` is up to 64 
 
 **Interactive flow**, for explaining it to a human: an update check (a newer CLI must be installed first), sign-in if needed, the optional GitHub App install and repo check, pick an existing project or create one (title, then a price of $3.00 or more, or $0), write `.yard/settings.json`, link the repo (asking before moving or replacing a link), pull the latest Production release into a fresh directory, offer a custom landing page, then offer license keys and device activations. The wizard never blocks a choice by plan: the server answers `upgrade_required`, the CLI shows the upgrade link and offers to retry the same request once the user has upgraded.
 
+A spec always creates a new project, so `--spec` is refused in a directory whose `.yard/settings.json` already names one; `init --project <slug>` sets that project up again. `--project` in a directory linked to another live project is refused too. `init` is refused in the home directory, whose `.yard` is the CLI's own configuration. `yard init --help` prints the spec schema.
+
 **Troubleshooting:** a hanging `yard init` is the interactive wizard (interrupt, retry with `--spec -` or `--project`). After a failed attempt, check `yard projects --json` and link rather than re-create.
 
 ---
@@ -134,9 +136,9 @@ How many tiers a plan allows is `max_pricing_tiers`. A tier's `key` is up to 64 
 `yard projects [--json]` lists the active team's projects:
 
 ```
-NAME                                PRICE      RELEASES   SALES
-✓ my-awesome-tool                   $9.99      3          12
-✗ private-beta                      $29.00     1          0
+NAME                                TIERS      RELEASES   SALES      MODIFIED
+✓ my-awesome-tool                   2          3          12         2026-10-09
+✗ private-beta                      1          1          0          2026-10-07
 ```
 
 `✓` is public, `✗` is not (change it with `yard sandbox visibility`). The table shows display names; every other command wants the slug, which `--json` carries on `.slug` (tiers are not included there; use `projects show`).
@@ -157,6 +159,8 @@ One project in full, including `tiers[]` with `key`, `pricing_model`, `seat_type
 yard projects show my-tool --json | jq '.tiers[] | select(.free_trial.enabled) | {key, name, days: .free_trial.days}'
 ```
 
+The tiers are the served release's, so a project that has published nothing says so instead of showing a price; read the draft's with `yard projects tiers <slug>`.
+
 ### yard projects edit [slug-or-id]
 
 Project-level settings: `license_key_enabled`, `activations_enabled`, `max_activations`. With no argument it picks the only project or prompts (in `--spec` mode it errors with the list of slugs). Interactive mode asks each question with the current value as default. `--spec` takes a sparse JSON object (unknown fields rejected, missing fields untouched); `--json` emits `{ "project": {...}, "settings": {...} }`. Enabling activations without restating `license_key_enabled` works when the project already has license keys.
@@ -167,7 +171,7 @@ The server enforces the plan: a missing feature is `upgrade_required`, printed w
 
 ### yard projects tiers
 
-List the tiers of a release, or add, change or remove one without resending the list. With no `--release` the subcommands edit your open draft (or a new draft seeded from your newest published release), the same release `yard push` writes to, and the new pricing goes live with `yard releases publish`. `--release <tag|id>` edits a published release instead, live at once wherever it is served; on the release the project serves, subscribers on a subscription tier whose price changes get notice before it applies. Tiers are addressed by **key** only (`yard projects tiers <slug> --json | jq -r '.[].key'`); the name is display text. To set every tier at once, use the settings.json `pricing` block and `yard push`.
+List the tiers of a release, or add, change or remove one without resending the list. With no `--release` the subcommands edit your open draft (or a new draft seeded from your newest published release), the same release `yard push` writes to, and the new pricing goes live with `yard releases publish`. `--release <tag|id>` edits a published release instead, live at once wherever it is served; on the release the project serves, subscribers on a subscription tier whose price changes get notice before it applies. Tiers are addressed by **key** only (`yard projects tiers <slug> --json | jq -r '.[].key'`); the name is display text. To set every tier at once, use the settings.json `pricing` block and `yard push`. Run inside a working copy of the project, a save to the release that working copy tracks also updates its `settings.json` (merged by key with local edits; a key changed on both sides is left for `yard pull`), and the product commands write the icon too; these notes go to stderr.
 
 - `yard projects tiers <slug> [--release <tag|id>] [--json]`: the release's tiers (default: your open draft, else the newest published release). `--json` is an array of settings.json `pricing.tiers` entries, also what every subcommand emits after its save.
 - `yard projects tiers add <slug> --spec <file|->`: the spec is one entry of settings.json `pricing.tiers` (`key`, `name`, `price_cents`, `description`, `features` (max 20), `pricing_model`, `seat_type`, `seat_count`, `min_seats`, `max_seats`, `volume_brackets`, `yearly_discount_percent`, `free_trial`, `gift_enabled`, `is_default`); unknown fields are rejected. Without `key` the tier takes the key that name was last published with, else one derived from its name; set it anyway. `is_default: true` demotes the current default, and a release's first tier is its default. Over `max_pricing_tiers` is `upgrade_required`.
@@ -202,7 +206,7 @@ A release is a project-wide snapshot (landing page, pricing, products, download 
 
 Uploads any `--file` assets into the draft (each straight to storage, up to 5 GiB), then publishes it under the tag into a channel (default `Production`, which the project follows, so it is live). Anything `yard push` already staged in the draft ships with it.
 
-Flags: `--project`, `--dir`, `--name`, `--notes`, `--notes-file <path|->`, `--file <path>` (repeatable), `--channel <name>` (must exist; create one with `yard channels create`, up to `max_channels` per project with Production included: Basic 1, Pro 10), `--release <id|tag>` (must still be a draft), `--spec <file|->`, `--json`. With `--spec` the spec is the whole request: the tag argument, `--project`, `--name`, `--notes`, `--notes-file`, `--file` and `--channel` are refused (set the field instead); `--dir`, `--release` and `--json` still apply. Tags are unique per project (`409` on reuse).
+Flags: `--project`, `--dir`, `--name`, `--notes`, `--notes-file <path|->`, `--file <path>` (repeatable), `--channel <name>` (must exist; create one with `yard channels create`, up to `max_channels` per project with Production included: Basic 1, Pro 10), `--release <id|tag>` (must still be a draft), `--spec <file|->`, `--json`. With `--spec` the spec is the whole request: the tag argument, `--project`, `--name`, `--notes`, `--notes-file`, `--file` and `--channel` are refused (set the field instead); `--dir`, `--release` and `--json` still apply. Without a terminal and without `--spec`, the tag and flags are the whole request: nothing is prompted for, and an unset name, notes or file list stays empty. Tags are unique per project (`409` on reuse).
 
 ```jsonc
 {
@@ -220,26 +224,34 @@ Per-file `✓`/`✗` lines go to stderr. If some files fail, the draft is still 
 ```json
 {
   "release": { "id": "…", "version": "v1.4.0", "is_draft": false, "files": [] },
-  "deployed": [{ "release_id": "…", "version": "v1.4.0", "to": "", "action": "attach", "artifacts": ["page", "releases"] }],
+  "deployed": [{ "project": "my-project", "release_id": "…", "version": "v1.4.0", "action": "attach", "artifacts": ["page", "releases"] }],
   "files": [{ "path": "./dist/a.tar.gz", "status": "uploaded", "size_bytes": 12345678 }],
   "uploaded": 1,
   "failed": 0
 }
 ```
 
-In `deployed`, `to` is `""` for the project itself, else a sandbox name.
+Each `deployed` entry names its target as `"project": "<slug>"` for the project itself or `"sandbox": "<name>"`, the same in every command's JSON.
 
 ### yard releases promote \<tag\> --to \<channel\>
 
-Moves a published release into another channel (out of the one it was in). A channel serves its most recently published release, so followers of the new channel serve it only if it is the newest published there (use `yard sandbox rollback` or `pin` for an older one); followers of the old one fall back to its next newest release. Nothing is copied. An archived release is refused: unarchive it instead. Flags: `--to` (required, must exist), `--project`, `--dir`, `--json` (`{ "channel": "Beta", "deployed": [...] }`).
+Moves a published release into another channel (out of the one it was in). A channel serves its most recently published release, so followers of the new channel serve it only if it is the newest published there (use `yard sandbox rollback` or `pin` for an older one); followers of the old one fall back to its next newest release. Nothing is copied. An archived release is refused: unarchive it instead. It prints each follower whose release changed (`my-project: v1.4.0 -> v1.3.2`; `none` where one is left serving nothing). Flags: `--to` (required, must exist), `--project`, `--dir`, `--json` (`{ "project", "release", "channel": "Beta", "serving": [{ "project": "my-project", "from": { "id", "version" }, "to": null }], "deployed": [...] }`; `from` or `to` is `null` where it serves nothing).
 
 ### yard releases archive \<tag|id\>
 
-Takes a published release out of its channel, frees its tag and deletes its download files (everything else is kept). Followers of that channel fall back to its next newest release. Refused with `409` while the project or a sandbox is pinned or rolled back to it (unpin, or roll back to a newer release, first). Drafts are refused (delete them in the dashboard). Flags: `--project`, `--dir`, `--json` (`{ "from_channel": "Beta", "deployed": [...] }`).
+Takes a published release out of its channel, frees its tag and deletes its download files (everything else is kept). Followers of that channel fall back to its next newest release. Refused with `409` while the project or a sandbox is pinned or rolled back to it (unpin, or roll back to a newer release, first). Drafts are refused (delete them in the dashboard). It asks first, naming each download file it deletes; without a terminal it refuses unless `--yes`. Flags: `--yes`, `--project`, `--dir`, `--json` (`{ "from_channel": "Beta", "deployed": [...] }`).
 
 ### yard releases unarchive \<tag|id\> [--to \<channel\>]
 
-Returns an archived release to the channel it was archived from (`Production` if that channel is gone), or to `--to`, without its download files. A tag names the newest archived release carrying it. The release takes its tag back (`409` if another release holds it). Flags: `--to`, `--project`, `--dir`, `--json` (`{ "channel": "Beta", "deployed": [...] }`).
+Returns an archived release to the channel it was archived from (`Production` if that channel is gone), or to `--to`, without its download files. A tag names the newest archived release carrying it. The release takes its tag back (`409` if another release holds it). Like `promote`, it reports each follower whose release changed. Flags: `--to`, `--project`, `--dir`, `--json` (`{ "channel": "Beta", "serving": [...], "deployed": [...] }`).
+
+### yard releases list
+
+The project's releases: open drafts first, then the rest newest first, with each one's channel, publish date and `draft` or `archived` status. `--channel <name>`, `--drafts` and `--archived` narrow it to one of those (at most one). Flags: `--page`, `--limit` (≤100, default 25), `--project`, `--dir`, `--json` (`{ "releases": [...], "total", "page", "limit" }`).
+
+### yard releases show \<tag|id\>
+
+One release with its download files: name, size, SHA-256 and download count. `--json` is the release detail, `files` included. Flags: `--project`, `--dir`, `--json`.
 
 ---
 
@@ -253,7 +265,7 @@ Production   7         v1.4.0         my-project         public      yes
 Beta         2         v1.5.0-beta.1  preview, staging   private
 ```
 
-`LATEST` is the release a new follower would serve (`-` when none). `--json`: `{ "project", "channels": [{ id, name, protected, visibility, created_at, release_count, latest_version, sandboxes }] }`, where `""` in `sandboxes` is the project itself.
+`LATEST` is the release a new follower would serve (`-` when none). `--json`: `{ "project", "channels": [{ id, name, protected, visibility, created_at, release_count, latest_version, sandboxes, project_follows }] }`: `sandboxes` names the sandboxes following the channel, and `project_follows` says whether the project does.
 
 ## yard channels create \<name\>
 
@@ -265,7 +277,7 @@ Adds a channel, private and empty, at the right end of the board. Names are 2-60
 
 ## yard channels delete \<channel\>
 
-Moves its releases and whatever follows it (the project or sandboxes) into `--move-to` (default `Production`), then deletes it. The followers redeploy and may serve a different release right away. Asks first unless `--yes`. Production can't be deleted. Flags: `--move-to`, `--yes`, `--json` (`{ "project", "channel", "moved_to", "deleted" }`), `--project`, `--dir`.
+Moves its releases and whatever follows it (the project or sandboxes) into `--move-to` (default `Production`), then deletes it. That can change what the project and the followers of either channel serve, so it asks first, naming each one whose release changes (`my-project: v1.4.0 -> v1.5.0`); without a terminal it refuses unless `--yes`. Production can't be deleted. Flags: `--move-to`, `--yes`, `--json` (`{ "project", "channel", "moved_to", "deleted", "serving": [...], "deployed": [...] }`, shaped as for `releases promote`), `--project`, `--dir`.
 
 ---
 
@@ -285,8 +297,8 @@ Links GitHub repos to the team's projects; releases published on a linked repo s
 
 API keys belong to the active team, not to their creator: anyone on the team can use one and it survives its creator leaving. Check `yard team` before minting. Scopes and what they allow: [api-reference.md](api-reference.md#authentication); a server that reads and fulfills users' products needs `products:read` and `products:fulfill` ([products.md](products.md#delivering-consumables)).
 
-- `yard keys list [--json] [--sort created_at|name|last_used_at] [--direction asc|desc]`: name, prefix (`yard_xxxxxxx`), scopes, last used, created. The secret is never shown again.
-- `yard keys create [name] [--scopes <csv>] [--spec <file|->] [--json]`: the secret is printed once (`key` in `--json`). Without `--scopes` it prints the scope catalog. Up to 100 keys per team.
+- `yard keys list [--json] [--sort created_at|name|last_used_at] [--direction asc|desc]`: every key's name, prefix (`yard_xxxxxxx`), scopes, last used, created and expiry. The secret is never shown again. `--json`: `{ "api_keys": [...], "total" }`.
+- `yard keys create [name] [--scopes <csv>] [--expires-in-days 7|30|60|90|365] [--spec <file|->] [--json]`: the secret is printed once (`key` in `--json`). Without `--scopes` it prints the scope catalog; a name and `--scopes` need no terminal. The spec is `{ "name", "scopes", "expires_in_days" }`. The name is trimmed and at most 100 characters, and each scope is kept once. A key never expires unless given an expiry. Up to 100 keys per team.
 
 ```sh
 KEY=$(echo '{"name":"ci-runner","scopes":["licenses:validate"]}' | yard keys create --spec - --json | jq -r .key)
@@ -313,7 +325,7 @@ Discount codes (needs `.team_permissions.coupons`; the server answers `403` with
 - `update <code>`: partial. Clear with `--no-expiry`, `--no-valid-from`, `--unlimited-uses` (or `null` in a spec); `--activate` / `--deactivate`; `--projects` alone re-scopes. The discount cannot change after the first redemption.
 - `rm <code> [--yes]`: only unused coupons; deactivate redeemed ones instead.
 - `transactions <code>`: the sales it was used on.
-- `validate <code> --project <slug> [--tier <uuid>] [--team <username>]`: runs the checkout check and reports the price; the project must be public. Exit 0 whenever the check ran; read `.valid`.
+- `validate <code> --project <slug> [--tier <uuid>] [--team <username>]`: runs the checkout check and reports the price; checkout only sees a project that is public and out of the Draft launch stage, and the hint names which is missing. Exit `0` when the code is usable and `1` when it isn't, with the result printed (and `.valid` in `--json`) either way.
 
 ```sh
 yard coupons generate --count 50 --prefix INFL --percent 15 --json | jq -r '.coupons[].code' > codes.txt
@@ -328,7 +340,7 @@ yard coupons list --json | jq -r '.coupons[] | select(.max_uses != null and .cur
 Read-only list of users with at least one completed, unrefunded purchase, across the team's projects. Money is pre-formatted text (`"$87.00"`); use `yard transactions` for arithmetic. Sandbox (simulated) users never appear.
 
 - `list [--json] [--project <slug>] [--sort lastTransaction|firstTransaction|email|username|orderCount|totalSpent|userDisplayId] [--direction] [--page] [--limit]`. `--project` narrows both the rows and the summary line.
-- `show <user-id-or-email> [--page] [--limit]`: that user's totals and their orders (refunded, pending, failed and trial ones included). Ids look like `user_deadbeef` and are truncated account ids, so two users can share one: that is a `409` ("Two users share this id; pass their email instead"), and the email resolves it.
+- `show <user-id-or-email> [--page] [--limit]`: that user's totals and their orders (refunded, pending, failed and trial ones included). Ids look like `user_deadbeef`, in any case, and are truncated account ids, so two users can share one: that is a `409` ("Two users share this id; pass their email instead"), and the email resolves it.
 
 ```sh
 yard users --project my-tool --sort totalSpent --direction desc --json | jq -r '.users[] | "\(.email) \(.total_spent_display)"'
@@ -338,7 +350,7 @@ yard users --project my-tool --sort totalSpent --direction desc --json | jq -r '
 
 ## yard transactions
 
-The team's sales. Ids are `order_xxxxxxxx` or the full UUID. Teams can't issue refunds from the CLI or the dashboard yet; Yard support (support@yard.sh) issues them. Sandbox (simulated) sales never appear here, in earnings or in payouts.
+The team's sales. Ids are `order_xxxxxxxx` (in any case) or the full UUID. Teams can't issue refunds from the CLI or the dashboard yet; Yard support (support@yard.sh) issues them. Sandbox (simulated) sales never appear here, in earnings or in payouts.
 
 - `list [--json] [--project <slug>] [--start <date>] [--end <date>] [--search <text>] [--type purchase|subscription|renewal|trial|trial_upgrade|gift] [--status completed|pending|failed|converted|refunded] [--kind tier|product] [--sort date|amount|teamEarnings|projectName] [--direction] [--page] [--limit]`. `--search` matches an order id, a user, a project title, a tier, a product or a coupon code; `--kind product` keeps product sales only, `--kind tier` tier sales only. With `--project`, `--sort` takes `date|amount|platformFee|teamEarnings|quantity|tierName|launchStage|userDisplayId|id`. The summary covers every sale in the date range (and only that project's with `--project`); `--search`, `--type`, `--status` and `--kind` narrow the rows and the total only. `TYPE` is `gift`, `trial`, `trial upgrade`, `renewal`, `subscription started` or `purchase`.
 - `show <order-id>`: tier (or `product:` and its type for a product sale; `product_name` and `product_type` in JSON), quantity, coupon, refund date, billing period, trial expiry.
@@ -389,7 +401,7 @@ Every project command walks up from the cwd to the directory holding `.yard/sett
 - `pricing.tiers` / `downloads.buttons`: when present, a push replaces the release's tiers or download buttons to match exactly. Give every tier a `key`: without one a renamed tier gets a new key and becomes a different tier. Shapes: [releases-and-updates.md](releases-and-updates.md#syncing-releases-from-github).
 - `products`: when present (`[]` included), a push replaces the release's products to match exactly and uploads each declared `icon` (a path relative to the directory holding `.yard`) whose bytes changed; a product without `icon` loses its icon. Absent, products stay dashboard-managed. Fields: [products.md](products.md#the-products-block).
 
-A push uploads `settings.json` itself, which is how deploys learn each service's settings, so changing one is an edit plus a push. The server keeps each release's copy in step with dashboard edits, so `yard status` can show a config diff you did not make; `yard pull` brings it down, replacing your copy (your `project_slug` is kept), along with product icons. Older layouts are rejected; see [troubleshooting.md](troubleshooting.md#yardsettingsjson-uses-an-old-service-layout).
+A push uploads `settings.json` itself, which is how deploys learn each service's settings, so changing one is an edit plus a push. The server keeps each release's copy in step with dashboard edits, so `yard status` can show a config diff you did not make; `yard pull` brings it down, merged by key with your own edits (your `project_slug` is kept), along with product icons. Older layouts are rejected; see [troubleshooting.md](troubleshooting.md#yardsettingsjson-uses-an-old-service-layout).
 
 **Common flags:** `--project <slug-or-uuid>`, `--dir <path>`, `--release <id|tag>` (default: your open draft, or a new draft seeded from the newest published release; required when several drafts are open; a published release is edited in place and is live on save if something serves it), `--json`, `--yes` (skip prompts: a push removing files missing locally, pushing into a served release).
 
@@ -403,11 +415,11 @@ A push uploads `settings.json` itself, which is how deploys learn each service's
 
 ### yard init --page
 
-Scaffolds the landing-page directory in an existing project: pulls the draft's page files, or writes a hello-world `index.html` + `styles.css`, and records `"landing_page": {"type": "custom"}` so the next push serves it. Idempotent; existing files are kept. `--json`: `{ project_root, project, source, release, written, skipped, preview_url, live_url }` (`source` is `"starter"` or the release it pulled from).
+Scaffolds the landing-page directory in an existing project: pulls the draft's page files, or writes a hello-world `index.html` + `styles.css`, and records `"landing_page": {"type": "custom"}` so the next push serves it. Idempotent; existing files are kept. Each file it writes or uploads is logged (to stderr with `--json`). `--json`: `"landing_page": { source, written, skipped, uploaded, settings, preview_url }` (`source` is `"starter"` or the release it pulled from; the lists are `[]` when empty).
 
 ### yard status
 
-What `yard push` would change, per bundle, without writing: `to_upload`, `unchanged`, `remote_only` (in the release, not local: the next push removes them unless `--keep`), `release_changed` (changed only in the release since the last pull or push; `yard pull` brings them) and `conflicts` (changed on both sides; the push would stop); `product_icons` also lists `missing` (declared in settings.json, absent locally, which fails a push). It also lists who serves that release and each one's deploy status. Nothing serves a draft, so after a push `serving` is empty; `yard sandbox list` covers every place regardless of release.
+What `yard push` would change, per bundle, without writing: `to_upload`, `unchanged`, `remote_only` (in the release, not local: the next push removes them unless `--keep`), `release_changed` (changed only in the release since the last pull or push; `yard pull` brings them) and `conflicts` (changed on both sides; the push and a pull would stop); `product_icons` also lists `missing` (declared in settings.json, absent locally, which fails a push). It also lists who serves that release and each one's deploy status. Nothing serves a draft, so after a push `serving` is empty; `yard sandbox list` covers every place regardless of release.
 
 ```json
 { "project": "my-slug", "release": "9f3e…", "version": "1.2.0", "draft": false,
@@ -417,13 +429,13 @@ What `yard push` would change, per bundle, without writing: `to_upload`, `unchan
 
 ### yard ls
 
-A release's files grouped by bundle (`page`, `service`, …), each with `path`, `content_type` and `size_bytes`.
+A release's files grouped by bundle (`config`, `page`, `services`, …), then its `downloads`, each with `path`, `content_type`, `size_bytes` and its hash.
 
 ### yard push
 
 Makes the draft match your files: uploads every changed local file (landing page, each service, migrations, settings.json, product icons), skips unchanged ones, and removes files the release holds that are missing locally, including files now matched by `ignore_files`. An interactive push lists the removals and asks once; `--yes` and `--json` skip the question, and without a terminal it refuses unless one is passed. `--keep` leaves those files in the release. A bundle whose directory is missing locally is left as it is, and a push that would remove the landing page's `index.html` stops and names the fix (restore it, or `--keep`). Every bundle is validated before anything uploads. Output is one line per bundle (`service api: 3 added, 2 changed, 1 removed, 60 unchanged`); `--verbose` lists the files. Prints a `Review:` URL; going live is `yard releases publish <tag>`. The `pricing` and `products` blocks are applied with settings.json, which uploads first (an invalid one is a 400 naming the field before any other file uploads); product icons upload next, and a declared icon missing locally fails the push before anything uploads. When the live deployment has a room class the local settings no longer declare, push warns `class Old will be deleted with all its data on deploy`.
 
-The working copy records what it last pulled or pushed in `.yard/sync/state.json` (it ignores itself in git), so a push sends only what changed here since. A file changed or added only in the release since then (in the dashboard or by an agent) is left for `yard pull` and listed in `release_changed`. A file changed on both sides stops the push before anything uploads, naming each file (`--json`: `{ "release", "conflicts": ["<bundle>/<path>: <how>"] }`, exit `1`): `yard pull` brings the release's copies down, replacing yours, or `yard push --force` replaces the release's with yours. With `--force`, or with no record for that release, the push compares only the two sides: every local file that differs uploads, and every file missing locally is removed unless `--keep`. Each upload names the copy it replaces, so a file that changes in the release during the push fails with `changed in the release during this push; run the push again` (exit `2`).
+The working copy records what it last pulled or pushed in `.yard/sync/state.json` (it ignores itself in git), so a push sends only what changed here since. A file changed or added only in the release since then (in the dashboard or by an agent) is left for `yard pull` and listed in `release_changed`. A file changed on both sides stops the push before anything uploads, naming each file (`--json`: `{ "release", "conflicts": ["<bundle>/<path>: <how>"] }`, exit `1`): `yard pull --force` takes the release's copies of those files, or `yard push --force` replaces the release's with yours. settings.json merges by top-level key first: when the two sides changed different keys (pricing in the dashboard, a service here), the push uploads the merge, and only a key changed on both sides is a conflict (`status` and `--json` add `settings_merge`: `{ from_release, from_here, conflicting }`). A push with nothing to send opens no draft (`--json` has `draft_opened` and `from_release`). With `--force`, or with no record for that release, the push compares only the two sides: every local file that differs uploads, and every file missing locally is removed unless `--keep`. Each upload names the copy it replaces, so a file that changes in the release during the push fails with `changed in the release during this push; run the push again` (exit `2`).
 
 ```json
 {
@@ -442,9 +454,9 @@ A bundle the project lacks is absent; `product_icons` appears when settings.json
 
 ### yard pull
 
-Downloads a release (default: your draft) into the project: settings.json, the landing page, each product icon to the path settings.json gives it (default `.yard/products/<key>.<ext>`), and each service into its directory (a missing service directory is not created; `yard init` in a fresh directory is the flow that does). Files already identical are skipped, and every other file the release holds replaces the local copy; `--force` rewrites identical ones too. A file the release deleted since the last pull or push is removed here, unless you changed it since (the next push then stops on it as a conflict). `--json`: per bundle `{ destination, written, skipped, removed }`.
+Downloads a release (default: your draft) into the project: settings.json, the landing page, each product icon to the path settings.json gives it (default `.yard/products/<key>.<ext>`), and each service into its directory (a missing service directory is not created; `yard init` in a fresh directory is the flow that does). It applies the same three-way rules as push, against the record of the last pull or push: a file changed only in the release is written, one changed only here is kept for the next push (`local_changed`), and a file changed on both sides stops the pull before anything is written (exit `1`, same `conflicts` JSON as push). settings.json merges by key as for push. `--force` takes the release's copy of the conflicting files only; `--discard` takes the release's copy of every file that differs, throwing away local changes. A file the release deleted is removed here, unless you changed it (a conflict). `.yard/settings.json` is never removed, and its `project_slug` stays yours. `--json`: per bundle `{ destination, written, skipped, removed, local_changed }`, plus `settings_merge` when it merged.
 
-There is no publish flag on `push`. To discard draft changes, delete the draft in the dashboard and `yard pull --release <last-tag> --force`.
+There is no publish flag on `push`. To discard draft changes, delete the draft in the dashboard and `yard pull --release <last-tag> --discard`.
 
 ---
 
@@ -490,7 +502,7 @@ yard sandbox list --json | jq '[.project] + .sandboxes | .[] | {slug, serving: .
 
 A service's code ships inside a release (`yard push`, then publish); these commands cover everything around it. Contract: [service-and-database.md](service-and-database.md). Commands that reach the project (`service open`, `service logs`, `service secrets`, `db`) take `--project`, `--dir`, `--sandbox <name>` (omitted = the project itself) and `--json`; `service init`, `service check` and `migrate` work on the local directory and take `--dir` and `--json`.
 
-- `yard service init <name> [--service-dir DIR] [--url PATH] [--realtime]`: scaffolds a working service (notes API, vanilla frontend, a first migration in `.yard/migrations/` when none exists) and records `{"dir", "name", "url": "/<name>", "access": "authenticated", "database_access": true}` under `services`. `--realtime` scaffolds a broadcast `Room` class with a WebSocket client instead (no migration) and records `"rooms": [{"class": "Room", "binding": "ROOMS"}]`. A workflow `README.md` is written at the top of the working directory if absent. Run it once per service.
+- `yard service init <name> [--service-dir DIR] [--url PATH] [--realtime]`: scaffolds a working service (notes API, vanilla frontend, and its migration in `.yard/migrations/`, numbered after the highest one there, e.g. `0002_init.sql`, unless an identical file is already present) and records `{"dir", "name", "url": "/<name>", "access": "authenticated", "database_access": true}` under `services`. `--realtime` scaffolds a broadcast `Room` class with a WebSocket client instead (no migration) and records `"rooms": [{"class": "Room", "binding": "ROOMS"}]`. A workflow `README.md` is written at the top of the working directory if absent. Run it once per service.
 - `yard service open [--service NAME]`: prints and opens the service URL (`{ sandbox, service, url, deployed }`). A private sandbox's URL is team-only.
 - `yard service check`: validates every bundle like a deploy would (offline; plan size limits are also checked when logged in), lints root-absolute `href`/`src`/`fetch("/…")` URLs, warns when `_service.js` imports a file or package (it deploys as one module, so bundle them in), and warns when a declared room class is not exported.
 - `yard service secrets set KEY=VALUE… | list | rm <name>`: `env.<NAME>` values for the project or one sandbox, shared by every service there; each change **redeploys those services** right away. Names are UPPER_SNAKE (not `DB` or `ASSETS`), ≤32 per target, ≤4 KiB each. Write-only: `list` shows names and times.
@@ -511,6 +523,6 @@ Serves the project locally the way Yard hosts it: the landing page at `http://lo
 ## Maintenance
 
 - `yard version`: prints `yard v2026.09.24-abc1234` followed by build details.
-- `yard update [--check]`: installs the latest CLI (`--check` only reports it). An interactive `yard init` refuses to run on an outdated CLI. Also updates a skill the CLI installed.
-- `yard skill install | update [--check] | uninstall [--force]`: the Yard agent skill, in `~/.agents/skills/yard/` plus `~/.claude/skills/yard/` and `~/.codex/skills/yard/` when those directories exist. Downloaded from `cli.yard.sh` and checksum-verified. `npx skills add yard-sh/skills` is the alternative, but the CLI does not manage that copy (`yard update` reports it as not installed; `yard skill install` replaces it).
-- `yard uninstall [--force]`: ends the session on the server, then removes `~/.yard/`, the skill copies, the `yard-cli://` handler and the binary; prints the paths to delete by hand if it cannot. Without a terminal it refuses unless `--force` is passed (so does `yard skill uninstall`).
+- `yard update [--check]`: installs the latest CLI (`--check` only reports it), checked against the release's published SHA-256 and swapped in beside the running binary, so it needs write access to that directory. An interactive `yard init` refuses to run on an outdated CLI. Also updates a skill the CLI installed.
+- `yard skill install | update [--check] | uninstall [--yes]`: the Yard agent skill, in `~/.agents/skills/yard/` plus `~/.claude/skills/yard/` and `~/.codex/skills/yard/` when those directories exist. Downloaded from `cli.yard.sh` and checksum-verified. `npx skills add yard-sh/skills` is the alternative, but the CLI does not manage that copy (`yard update` reports it as not installed; `yard skill install` replaces it).
+- `yard uninstall [--yes]`: ends the session on the server, then removes `~/.yard/`, the skill copies, the `yard-cli://` handler and the binary; prints the paths to delete by hand if it cannot. Without a terminal it refuses unless `--yes` is passed (so does `yard skill uninstall`).
