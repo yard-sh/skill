@@ -22,7 +22,7 @@ It is the public project JSON (`GET /v1/projects/{username}/{slug}/public`), sna
 | `price_cents` | `number` | Default tier price |
 | `discounted_price_cents` | `number?` | After any launch-stage discount |
 | `launch_stage` | `string` | `draft`, `pre-order`, `early_access` or `published` |
-| `stage_discount_percent` | `number?` | Active launch-stage discount |
+| `launch_stage_discount_percent` | `number?` | Active launch-stage discount |
 | `tiers` | `PricingTier[]` | Below |
 | `products` | `Product[]` | Products on sale on top of a tier: `key`, `name`, `description?`, `type` (`one_time`, `consumable`, `subscription`), `price_cents`, `yearly_discount_percent?`, `yearly_price_cents?` (subscriptions), `requires` (tier keys), `icon_url?`. Empty when none. See [products.md](products.md) |
 | `images` | `ProjectImage[]` | Screenshots and icons, each with a `url` |

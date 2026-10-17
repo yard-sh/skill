@@ -49,7 +49,7 @@ Products are sold on top of a tier, never instead of one: one-time add-ons and D
 
 New projects start in `draft` and move **forward only**:
 
-| Stage | Meaning |
+| Launch stage | Meaning |
 | --- | --- |
 | `draft` | Not visible to users; the owning team can still use every page and service. |
 | `early_access` | Public and purchasable, marked "Early Access". Optional launch discount `early_access_discount_percent` (1-100), which ends at `published`. |
@@ -58,7 +58,7 @@ New projects start in `draft` and move **forward only**:
 
 - `draft` → `early_access` → `published`, or straight from `draft` to `published`. Going back is rejected ("Cannot move launch stage backward"); `published` can never change.
 - Leaving `draft` requires the team to have finished payout setup.
-- Stages and the early-access discount are set in the dashboard (https://dash.yard.sh/projects); the CLI does not change them.
+- Launch stages and the early-access discount are set in the dashboard (https://dash.yard.sh/projects); the CLI does not change them.
 - The launch stage is not visibility: whether strangers may view at all is `yard sandbox visibility`, and a draft serves nothing publicly either way.
 
 ## Coupons
