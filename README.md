@@ -47,4 +47,8 @@ yard skill update
 
 ## Contributing
 
-This repo is consumed by anyone with the skill installed, so changes propagate through the parent [yard-sh/yard](https://github.com/yard-sh) repo's submodule pointer. Open an issue or PR here for content fixes; coordinate larger restructures with the team first.
+This repo is consumed by anyone with the skill installed, so changes propagate through the parent Yard repository's submodule pointer. Open an issue or PR here for content fixes; coordinate larger restructures with the team first.
+
+## Releases
+
+A release is cut by Yard's production deploy when it moves its pointer to this repository: it tags the commit it pins and creates the GitHub release, named after the Yard commit that shipped it (`v<date>-<sha>`). `yard skill install` and `yard skill update` read the latest release.
