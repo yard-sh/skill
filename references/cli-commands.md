@@ -233,7 +233,7 @@ Per-file `✓`/`✗` lines go to stderr. If some files fail, the draft is still 
 
 Each `deployed` entry names its target as `"project": "<slug>"` for the project itself or `"sandbox": "<name>"`, the same in every command's JSON.
 
-### yard releases promote \<tag\> --to \<channel\>
+### yard releases promote \<tag|id\> --to \<channel\>
 
 Moves a published release into another channel (out of the one it was in). A channel serves its most recently published release, so followers of the new channel serve it only if it is the newest published there (use `yard sandbox rollback` or `pin` for an older one); followers of the old one fall back to its next newest release. Nothing is copied. An archived release is refused: unarchive it instead. It prints each follower whose release changed (`my-project: v1.4.0 -> v1.3.2`; `none` where one is left serving nothing). Flags: `--to` (required, must exist), `--project`, `--dir`, `--json` (`{ "project", "release", "channel": "Beta", "serving": [{ "project": "my-project", "from": { "id", "version" }, "to": null }], "deployed": [...] }`; `from` or `to` is `null` where it serves nothing).
 
