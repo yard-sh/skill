@@ -247,7 +247,7 @@ Returns an archived release to the channel it was archived from (`Production` if
 
 ### yard releases list
 
-The project's releases: open drafts first, then the rest newest first, with each one's channel, publish date and `draft` or `archived` status. `--channel <name>`, `--drafts` and `--archived` narrow it to one of those (at most one). Flags: `--page`, `--limit` (≤100, default 25), `--project`, `--dir`, `--json` (`{ "releases": [...], "total", "page", "limit" }`).
+The project's releases: open drafts first, then the rest newest first, with each one's channel, publish date and `draft` or `archived` status. `--channel <name>`, `--drafts` and `--archived` narrow it to one of those (at most one). Flags: `--page`, `--limit` (≤100, default 25), `--project`, `--dir`, `--json` (`{ "items": [...], "total", "page", "limit" }`).
 
 ### yard releases show \<tag|id\>
 
@@ -297,7 +297,7 @@ Links GitHub repos to the team's projects; releases published on a linked repo s
 
 API keys belong to the active team, not to their creator: anyone on the team can use one and it survives its creator leaving. Check `yard team` before minting. Scopes and what they allow: [api-reference.md](api-reference.md#authentication); a server that reads and fulfills users' products needs `products:read` and `products:fulfill` ([products.md](products.md#delivering-consumables)).
 
-- `yard keys list [--json] [--sort created_at|name|last_used_at] [--direction asc|desc]`: every key's name, prefix (`yard_xxxxxxx`), scopes, last used, created and expiry. The secret is never shown again. `--json`: `{ "api_keys": [...], "total" }`.
+- `yard keys list [--json] [--sort created_at|name|last_used_at] [--direction asc|desc]`: every key's name, prefix (`yard_xxxxxxx`), scopes, last used, created and expiry. The secret is never shown again. `--json`: `{ "items": [...], "total" }`.
 - `yard keys create [name] [--scopes <csv>] [--expires-in-days 7|30|60|90|365] [--spec <file|->] [--json]`: the secret is printed once (`key` in `--json`). Without `--scopes` it prints the scope catalog; a name and `--scopes` need no terminal. The spec is `{ "name", "scopes", "expires_in_days" }`. The name is trimmed and at most 100 characters, and each scope is kept once. A key never expires unless given an expiry. Up to 100 keys per team.
 
 ```sh
@@ -328,8 +328,8 @@ Discount codes (needs `.team_permissions.coupons`; the server answers `403` with
 - `validate <code> --project <slug> [--tier <uuid>] [--team <username>]`: runs the checkout check and reports the price; checkout only sees a project that is public and out of the Draft launch stage, and the hint names which is missing. Exit `0` when the code is usable and `1` when it isn't, with the result printed (and `.valid` in `--json`) either way.
 
 ```sh
-yard coupons generate --count 50 --prefix INFL --percent 15 --json | jq -r '.coupons[].code' > codes.txt
-yard coupons list --json | jq -r '.coupons[] | select(.max_uses != null and .current_uses >= .max_uses) | .code' \
+yard coupons generate --count 50 --prefix INFL --percent 15 --json | jq -r '.items[].code' > codes.txt
+yard coupons list --json | jq -r '.items[] | select(.max_uses != null and .current_uses >= .max_uses) | .code' \
   | xargs -r -I{} yard coupons update {} --deactivate
 ```
 
@@ -343,7 +343,7 @@ Read-only list of users with at least one completed, unrefunded purchase, across
 - `show <user-id-or-email> [--page] [--limit]`: that user's totals and their orders (refunded, pending, failed and trial ones included). Ids look like `user_deadbeef`, in any case, and are truncated account ids, so two users can share one: that is a `409` ("Two users share this id; pass their email instead"), and the email resolves it.
 
 ```sh
-yard users --project my-tool --sort totalSpent --direction desc --json | jq -r '.users[] | "\(.email) \(.total_spent_display)"'
+yard users --project my-tool --sort totalSpent --direction desc --json | jq -r '.items[] | "\(.email) \(.total_spent_display)"'
 ```
 
 ---
@@ -357,8 +357,8 @@ The team's sales. Ids are `order_xxxxxxxx` (in any case) or the full UUID. Teams
 - `trial <order-id> --add-days N`: lengthen (`7`) or shorten (`-3`) a running trial, up to 365 either way. Days are added to the **current expiry, not today**. An expired trial whose new expiry is in the future becomes active again (`"reactivated": true`), unless its user has since started another trial on that project. A card-required trial's first charge moves with it: taking it to today or earlier ends the trial and charges the card now, and one already charged or with a plan change scheduled is a `409`. **The user on the trial is notified** (email and in-app) unless they turned off Transaction confirmations. Needs `.team_permissions.sell_projects.granted`. The trial length offered to new users is the tier's `free_trial.days`.
 
 ```sh
-yard transactions list --type trial --json | jq -r '.transactions[] | "\(.id) \(.user_email) \(.trial_expires_at)"'
-yard transactions list --project my-tool --start 2026-07-01 --json | jq '[.transactions[].team_earnings_cents] | add'
+yard transactions list --type trial --json | jq -r '.items[] | "\(.id) \(.user_email) \(.trial_expires_at)"'
+yard transactions list --project my-tool --start 2026-07-01 --json | jq '[.items[].team_earnings_cents] | add'
 ```
 
 ---
