@@ -405,7 +405,7 @@ A push uploads `settings.json` itself, which is how deploys learn each service's
 
 **Common flags:** `--project <slug-or-uuid>`, `--dir <path>`, `--release <id|tag>` (default: your open draft, or a new draft seeded from the newest published release; required when several drafts are open; a published release is edited in place and is live on save if something serves it), `--json`, `--yes` (skip prompts: a push removing files missing locally, pushing into a served release).
 
-**Exit codes:** `0` success, `1` fatal (auth, network, validation), `2` partial (`push` only: some files uploaded, some failed; see `errors`).
+**Exit codes:** `0` success, `1` fatal (auth, network, validation), `2` partial (`push` only: some files uploaded, some failed; see `errors`), `130` stopped with Ctrl-C (`143` for SIGTERM): what was in flight is cancelled, an open upload link included, and a push keeps what it already sent.
 
 **Limits, checked before any upload.** File counts and sizes come from the team's plan (`team_permissions` `page_max_*`, `service_max_*`, `migrations_max_*` in GET /v1/me); the numbers below are Basic's and Pro's.
 
