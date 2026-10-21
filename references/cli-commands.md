@@ -123,7 +123,7 @@ How many tiers a plan allows is `max_pricing_tiers`. A tier's `key` is up to 64 
 
 `github_repo_linked` is whether the project has a linked repo once init is done.
 
-**Interactive flow**, for explaining it to a human: an update check (a newer CLI must be installed first), sign-in if needed, the optional GitHub App install and repo check, pick an existing project or create one (title, then a price of $3.00 or more, or $0), write `.yard/settings.json`, link the repo (asking before moving or replacing a link), pull the latest Production release into a fresh directory, offer a custom landing page, then offer license keys and device activations. The wizard never blocks a choice by plan: the server answers `upgrade_required`, the CLI shows the upgrade link and offers to retry the same request once the user has upgraded.
+**Interactive flow**, for explaining it to a human: an update check (a newer CLI must be installed first), sign-in if needed, the optional GitHub App install and repo check, pick an existing project or create one (title, then its tiers, which the server's tier rules check once every question is answered, before the project is created: a price of $3.00 or more, or $0), write `.yard/settings.json`, link the repo (asking before moving or replacing a link), pull the latest Production release into a fresh directory, offer a custom landing page, then offer license keys and device activations. The wizard never blocks a choice by plan: the server answers `upgrade_required`, the CLI shows the upgrade link and offers to retry the same request once the user has upgraded.
 
 A spec always creates a new project, so `--spec` is refused in a directory whose `.yard/settings.json` already names one; `init --project <slug>` sets that project up again. `--project` in a directory linked to another live project is refused too. `init` is refused in the home directory, whose `.yard` is the CLI's own configuration. `yard init --help` prints the spec schema.
 
@@ -297,7 +297,7 @@ Links GitHub repos to the team's projects; releases published on a linked repo s
 
 API keys belong to the active team, not to their creator: anyone on the team can use one and it survives its creator leaving. Check `yard team` before minting. Scopes and what they allow: [api-reference.md](api-reference.md#authentication); a server that reads and fulfills users' products needs `products:read` and `products:fulfill` ([products.md](products.md#delivering-consumables)).
 
-- `yard keys list [--json] [--sort created_at|name|last_used_at] [--direction asc|desc]`: every key's name, prefix (`yard_xxxxxxx`), scopes, last used, created and expiry. The secret is never shown again. `--json`: `{ "items": [...], "total" }`.
+- `yard keys list [--json] [--sort createdAt|name|keyPrefix|lastUsedAt] [--direction asc|desc]`: every key's name, prefix (`yard_xxxxxxx`), scopes, last used, created and expiry. The secret is never shown again. `--json`: `{ "items": [...], "total" }`.
 - `yard keys create [name] [--scopes <csv>] [--expires-in-days 7|30|60|90|365] [--spec <file|->] [--json]`: the secret is printed once (`key` in `--json`). Without `--scopes` it prints the scope catalog; a name and `--scopes` need no terminal. The spec is `{ "name", "scopes", "expires_in_days" }`. The name is trimmed and at most 100 characters, and each scope is kept once. A key never expires unless given an expiry. Up to 100 keys per team.
 
 ```sh
