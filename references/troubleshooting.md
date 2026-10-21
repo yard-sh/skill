@@ -122,9 +122,9 @@ A GitHub repository is linked to one Yard project at a time. To work on the proj
 
 ## Price validation errors
 
-- **"minimum price is $3.00"**: Paid projects must be at least $3.00. Enter `0` for a free project.
-- **"price cannot be negative"**: Prices must be zero or positive.
-- **"could not parse price"**: Enter a number like `5`, `5.00`, or `9.99`. Don't include the `$` sign.
+- **"tier price must be free ($0) or at least $3.00"**: a paid tier costs at least $3.00; enter `0` for a free one. The `yard init` wizard checks its tiers once every question is answered, before the project is created.
+- **"... is negative"**: Prices must be zero or positive.
+- **"... is not a dollar amount"**: Enter a number like `5`, `5.00` or `9.99`; a leading `$` is fine.
 
 ---
 

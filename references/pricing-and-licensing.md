@@ -28,7 +28,7 @@ A tier's `key` (`pro`, `team-5-pack`) is its identity across releases and pricin
 ## Seat Types
 
 - **`single`**: one license, quantity 1, one license key per purchase.
-- **`fixed_pack`**: a fixed bundle ("Team 5-Pack") bought as one unit; `seat_count` (2-1000) keys per purchase.
+- **`fixed_pack`**: a fixed bundle ("Team 5-Pack") bought as one unit; `seat_count` (2 or more) keys per purchase.
 - **`per_seat`**: the user picks a quantity at checkout, within `min_seats` / `max_seats` (null = unlimited); one key per seat; optional volume brackets.
 
 ## Volume Brackets
