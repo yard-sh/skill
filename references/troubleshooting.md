@@ -65,7 +65,7 @@ If origin points to a non-GitHub host (GitLab, Bitbucket, etc.), Yard will skip 
 
 ## Session expired or revoked
 
-Sessions last up to 90 days; in between, the server renews the short-lived access token transparently. A session also ends when it is revoked from the security page's command-line sessions, when the password changes, or after `yard logout`. Once it has ended, any authenticated CLI command fails with a 401.
+Sessions last up to 90 days; in between, the server renews the short-lived access token transparently. A session also ends when it is revoked from the security page's command-line sessions, when the password changes, or after `yard logout`. Once it has ended, any authenticated CLI command fails with a 401, and the CLI says to sign in again.
 
 **Fix:**
 
