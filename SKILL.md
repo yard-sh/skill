@@ -67,7 +67,7 @@ Then cover what the project type needs:
 When Yard's MCP tools are connected (`https://mcp.yard.sh/`), manage through them; they need no CLI install or `yard login`. The user approved them for one team, and the team sees each change as yours. `whoami` names the team and what its plan includes; connecting needs `.team_permissions.agent_access`. `yard dev` still needs the CLI.
 
 - Read `yard://docs/getting-started/mcp-server` (or call `read_yard_docs` with that topic) first; `read_yard_docs` reads every page of Yard's docs.
-- Every change takes an optional `note`: one sentence on what you're doing and why. The user's team reads it beside the change, and watches your calls live in the dashboard.
+- Every change takes an optional `note`: a short summary of the change. The user's team reads it beside the change, and watches your calls live in the dashboard.
 - A change to something that exists passes the `base_hash` you read for it: a file's `content_hash`, or one of the release's `versions` from `get_release`. `stale_base` means it changed since; read it again and make your change to what it holds now.
 - Text files go inline with `write_file`. Binary files, text over about 1 MB, product icons and release downloads go through `create_upload_link`: `PUT` the bytes to the link, then call `finalize_upload`. A release download is added in the background: call `get_upload` every few seconds until it is `done` or `failed`.
 
