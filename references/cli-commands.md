@@ -59,7 +59,7 @@ Projects are published at https://yard.sh/@acme/<slug>
 
 `--json` emits `{ active_team_id, active_team, teams }`. The active team lives on the account, shared with the dashboard's team switcher, so it can change between commands; re-check it rather than trusting an earlier answer. Membership is `owner` or `admin`: both run the whole project surface, but payouts and billing (reads included) are owner-only and answer `403` with `not_team_owner` to an admin.
 
-A team command run without a team answers `403` with `error_code: "no_team"` ("A team is required"). It is not a plan problem: set one up at https://yard.sh/finish, then run `yard team`.
+A team command run without a team answers `403` with `error_code: "no_team"` ("A team is required"), and the CLI prints where to get one under the error. It is not a plan problem: set one up at https://yard.sh/finish, then run `yard team`.
 
 ---
 
@@ -167,7 +167,7 @@ Project-level settings: `license_key_enabled`, `activations_enabled`, `max_activ
 
 Tiers are not project settings: a `tiers` key is rejected with an error naming `projects tiers add`, `edit` and `rm`. Pricing belongs to a release; change it with `projects tiers` or the `pricing` block in settings.json.
 
-The server enforces the plan: a missing feature is `upgrade_required`, printed with the pricing link (interactive exits 0, `--spec` exits non-zero).
+The server enforces the plan: a missing feature fails the edit with `upgrade_required` and the server's reason, followed by the pricing link, interactive or not.
 
 ### yard projects tiers
 
@@ -310,7 +310,7 @@ Testing license-key validation end to end: [pricing-and-licensing.md](pricing-an
 
 ## yard coupons
 
-Discount codes (needs `.team_permissions.coupons`; the server answers `403` without it). Every subcommand takes a code or UUID. With both flags and `--spec`, flags win field by field.
+Discount codes (needs `.team_permissions.coupons`; the server answers `403` `upgrade_required` without it). Every subcommand takes a code or UUID. With both flags and `--spec`, flags win field by field.
 
 **Units:** `--percent 20` is 20% off; `--amount 5` is **$5.00**. In a spec, `discount_value` is a percent for `percentage` and **cents** for `fixed_amount`. Dates are `YYYY-MM-DD` or RFC 3339; a bare `--expires` date covers the whole day (UTC), a bare `--valid-from` starts at midnight UTC.
 
