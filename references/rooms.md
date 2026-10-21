@@ -219,8 +219,8 @@ exists from the room's first request and needs no migration.
 - **Key-value:** `await ctx.storage.get("present")`, `put(key, value)`,
   `delete(key)`, and `list({ prefix, limit })`, which returns a `Map`. Values
   are structured-clone-able (objects, arrays, Dates, Maps).
-- **SQL:** `ctx.storage.sql.exec(sql, ...params)` runs SQLite inside the
-  room and returns a cursor: `.toArray()` for all rows, `.one()` for
+- **SQL:** `ctx.storage.sql.exec(sql, ...params)` runs SQL against the
+  room's own storage and returns a cursor: `.toArray()` for all rows, `.one()` for
   exactly one, or iterate it. Create tables on first use; there is no
   migration stream for rooms:
 

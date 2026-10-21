@@ -101,7 +101,7 @@ return createItem(env, user, await request.json());
 
 ## Database
 
-`env.DB` is SQLite (its dialect, `RETURNING` and `INSERT … ON CONFLICT … DO UPDATE` upserts included) behind a prepared-statement API:
+`env.DB` is Yard DB, which takes SQLite-compatible SQL (`RETURNING` and `INSERT … ON CONFLICT … DO UPDATE` upserts included; the full list is the [SQL section of the docs](https://docs.yard.sh/v1/platform/database/overview#sql)) behind a prepared-statement API:
 
 ```js
 const stmt = env.DB.prepare("SELECT * FROM notes WHERE user_id = ?1").bind(user);
