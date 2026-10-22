@@ -134,6 +134,7 @@ Tiers and products are addressed by key, never by name ([tier keys](pricing-and-
 
 - **`no tier with the key "Pro"`** from `yard projects tiers edit|rm` (or `no product with the key` from `products edit|rm`): pass the tier's key (`pro`), not its name.
 - **"price must be at least $0.99"** / **"price cannot exceed $10,000.00"**: a product's `price_cents` is 99 to 1,000,000 (tiers start at $3.00).
+- **`duplicate product key: gems`** / **`duplicate product name: …`** from `yard projects products add|edit`: another product of the release already has it. The CLI checks the whole set against Yard's product rules before sending anything, so nothing was saved.
 - **"products are sold on top of a pricing tier, so add a tier first"**: the release has products but no tiers. Add a tier in the same push or first.
 - **`requires "Pro", which is not a valid tier key`**: `requires` holds tier keys (lowercase slugs), not names.
 - **`requires the tier "team", which this release does not have`**: add that tier to the release, or drop it from `requires`.
