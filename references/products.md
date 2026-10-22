@@ -84,7 +84,7 @@ yard releases publish v1.3.0                                   # the draft goes 
 - `add`, `edit` and `rm` edit your open draft (or a new draft seeded from the newest published release), the release `yard push` writes to; `--release <tag|id>` edits a published release, live at once wherever it is served. Every subcommand takes `--release` and `--json` (the release's product list after the save).
 - `add <slug> --spec <file|-> [--icon <path>]`: one settings.json entry (unknown fields rejected; `icon` in the spec works like `--icon`). `key` may be omitted (derived from the name), but write it.
 - `edit <slug> <product-key> [--spec <file|->] [--icon <path> | --remove-icon]`: a partial spec; present fields replace, absent ones stay. A published product's `key` can't change: `add` one under the new key and `rm` the old.
-- `rm <slug> <product-key> [--yes]`: buyers keep what they bought. `--yes` is required without a TTY.
+- `rm <slug> <product-key> [--yes]`: buyers keep what they bought. `--yes` is required without a terminal.
 
 Over HTTP: `PUT /v1/projects/{id}/products?release=<release id>` replaces the whole set (`projects:write`; send back an existing `icon` object to keep it), and `PUT` / `DELETE /v1/projects/{id}/products/{key}/icon?release=` upload (multipart field `image`) or remove one icon (`releases:write`). Icon changes record no product revision.
 

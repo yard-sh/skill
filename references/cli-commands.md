@@ -1,6 +1,6 @@
 # Yard CLI Command Reference
 
-The binary is `yard`. Most commands take `--json` (one JSON object on stdout, logs on stderr) and many take `--spec <file|->` (a JSON body from a file or stdin). `yard <command> --help` lists every flag.
+The binary is `yard`. Most commands take `--json` (the result as JSON on stdout, messages on stderr) and many take `--spec <file|->` (a JSON body from a file or stdin). `yard <command> --help` lists every flag.
 
 ---
 
@@ -136,12 +136,12 @@ A spec always creates a new project, so `--spec` is refused in a directory whose
 `yard projects [--json]` lists the active team's projects:
 
 ```
-NAME                                TIERS      RELEASES   SALES      MODIFIED
-✓ my-awesome-tool                   2          3          12         2026-10-09
-✗ private-beta                      1          1          0          2026-10-07
+NAME               TIERS  RELEASES  SALES  MODIFIED
+✓ my-awesome-tool  2      3         12     2026-10-09
+✗ private-beta     1      1         0      2026-10-07
 ```
 
-`✓` is public, `✗` is not (change it with `yard sandbox visibility`). The table shows display names; every other command wants the slug, which `--json` carries on `.slug` (tiers are not included there; use `projects show`).
+`✓` is public, `✗` is not (`[OK]` and `[X]` where the terminal shows ASCII; change it with `yard sandbox visibility`). The table shows display names; every other command wants the slug, which `--json` carries on `.slug` (tiers are not included there; use `projects show`).
 
 ```sh
 yard projects --json | jq -r '.[].slug'                                  # all slugs
@@ -179,7 +179,7 @@ List the tiers of a release, or add, change or remove one without resending the 
   ```sh
   echo '{"free_trial": {"enabled": true, "days": 14}}' | yard projects tiers edit simple-note base --spec -
   ```
-- `yard projects tiers rm <slug> <tier-key> [--yes] [--promote-default]`: drops the tier from the release. Existing purchases are unaffected and its subscribers keep their price. Refuses to remove the last tier, the default without `--promote-default`, or a tier a product `requires` (drop the requirement first). `--yes` is required without a TTY.
+- `yard projects tiers rm <slug> <tier-key> [--yes] [--promote-default]`: drops the tier from the release. Existing purchases are unaffected and its subscribers keep their price. Refuses to remove the last tier, the default without `--promote-default`, or a tier a product `requires` (drop the requirement first). `--yes` is required without a terminal.
 
 ### yard projects products
 
@@ -192,7 +192,7 @@ Add, change or remove one product of a release, matched by key; the same draft a
     | yard projects products add my-game --spec - --icon art/gems.png --json
   ```
 - `edit <slug> <product-key> [--spec <file|->] [--icon <path> | --remove-icon]`: a partial spec; present fields replace, absent ones stay.
-- `rm <slug> <product-key> [--yes]`: buyers keep what they bought. `--yes` is required without a TTY.
+- `rm <slug> <product-key> [--yes]`: buyers keep what they bought. `--yes` is required without a terminal.
 
 Icons are exactly 256x256 PNG, JPEG or WebP, at most 1 MiB. More products than `max_products` is a 400 ("your plan supports up to N products").
 
@@ -354,7 +354,7 @@ The team's sales. Ids are `order_xxxxxxxx` (in any case) or the full UUID. Teams
 
 - `list [--json] [--project <slug>] [--start <date>] [--end <date>] [--search <text>] [--type purchase|subscription|renewal|trial|trial_upgrade|gift] [--status completed|pending|failed|converted|refunded] [--kind tier|product] [--sort date|amount|total|teamEarnings|projectName] [--direction] [--page] [--limit]`. `--search` matches an order id, a user, a project title, a tier, a product or a coupon code; `--kind product` keeps product sales only, `--kind tier` tier sales only. With `--project`, `--sort` takes `date|amount|total|platformFee|teamEarnings|quantity|tierName|launchStage|userDisplayId|id`. `amount` is the subtotal and `total` adds tax. The summary covers every sale in the date range (and only that project's with `--project`); `--search`, `--type`, `--status` and `--kind` narrow the rows and the total only. `TYPE` is `gift`, `trial`, `trial upgrade`, `renewal`, `subscription started` or `purchase`.
 - `show <order-id>`: tier (or `product:` and its type for a product sale; `product_name` and `product_type` in JSON), quantity, coupon, refund date, billing period, trial expiry.
-- `trial <order-id> --add-days N`: lengthen (`7`) or shorten (`-3`) a running trial, up to 365 either way. Days are added to the **current expiry, not today**. An expired trial whose new expiry is in the future becomes active again (`"reactivated": true`), unless its user has since started another trial on that project. A card-required trial's first charge moves with it: taking it to today or earlier ends the trial and charges the card now, so the command asks first (`--yes` accepts the charge without asking, and is required when stdin is not a TTY), and one already charged or with a plan change scheduled is a `409`. **The user on the trial is notified** (email and in-app) unless they turned off Transaction confirmations. Needs `.team_permissions.sell_projects.granted`. The trial length offered to new users is the tier's `free_trial.days`.
+- `trial <order-id> --add-days N`: lengthen (`7`) or shorten (`-3`) a running trial, up to 365 either way. Days are added to the **current expiry, not today**. An expired trial whose new expiry is in the future becomes active again (`"reactivated": true`), unless its user has since started another trial on that project. A card-required trial's first charge moves with it: taking it to today or earlier ends the trial and charges the card now, so the command asks first (`--yes` accepts the charge without asking, and is required when stdin is not a terminal), and one already charged or with a plan change scheduled is a `409`. **The user on the trial is notified** (email and in-app) unless they turned off Transaction confirmations. Needs `.team_permissions.sell_projects.granted`. The trial length offered to new users is the tier's `free_trial.days`.
 
 ```sh
 yard transactions list --type trial --json | jq -r '.items[] | "\(.id) \(.user_email) \(.trial_expires_at)"'
