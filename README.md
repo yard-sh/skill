@@ -26,7 +26,7 @@ When this skill is installed, an agent gains awareness of:
   - `landing-pages.md`: custom landing-page runtime and conventions
   - `service-and-database.md`: hosted service and database runtime contract and workflow
   - `local-dev.md`: `yard dev`, personas, the control panel API
-  - `rooms.md`: realtime rooms: declaring classes, the class contract, connections, storage, limits, lifecycle
+  - `rooms.md`: realtime rooms: declaring room types, the room type contract, connections, storage, limits, lifecycle
   - `releases-and-updates.md`: releases, channels, GitHub sync, the update server
   - `templates.md`: making a project template and the Create in Yard button
   - `troubleshooting.md`: common issues

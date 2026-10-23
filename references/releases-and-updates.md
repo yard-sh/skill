@@ -63,7 +63,7 @@ Trials use the same `free_trial` object as everywhere else. Array order is displ
 
 ```json
 {
-  "version": 8,
+  "version": 9,
   "project_slug": "my-project",
   "pricing": {
     "tiers": [

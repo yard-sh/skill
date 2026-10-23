@@ -10,8 +10,8 @@ WebSocket connections, its own storage and its own alarm. Requires the
 answers `upgrade_required` and `yard push` restates it with the upgrade link.
 
 - [What a room is](#what-a-room-is)
-- [Declaring classes](#declaring-classes)
-- [The class contract](#the-class-contract)
+- [Declaring room types](#declaring-room-types)
+- [The room type contract](#the-room-type-contract)
 - [Connections](#connections)
 - [Storage](#storage)
 - [Limits](#limits)
@@ -23,7 +23,7 @@ answers `upgrade_required` and `yard push` restates it with the upgrade link.
 
 ## What a room is
 
-A room is a named instance of a room class, a class that `_service.js`
+A room is a named instance of a room type, a class that `_service.js`
 exports. Every request for one name reaches the same instance, wherever it
 comes from, and the instance handles one event at a time, so there is nothing
 to lock and no race between two messages. It wakes on the first request, goes
@@ -39,48 +39,49 @@ else; the room owns the connections and the state. Rows shared by everything
 and kept for good (accounts, history, billing state) still belong in
 `env.DB`; the live state of one conversation belongs in its room.
 
-## Declaring classes
+## Declaring room types
 
-Room classes are declared on the service's entry in `.yard/settings.json`,
+Room types are declared on the service's entry in `.yard/settings.json`,
 next to `database_access`:
 
 ```json
 {
-  "version": 8,
+  "version": 9,
   "services": [
     {
       "dir": "chat",
       "name": "chat",
       "url": "/chat",
       "access": "users",
-      "rooms": [{ "class": "Room", "binding": "ROOMS" }]
+      "rooms": [{ "type": "Room", "binding": "ROOMS" }]
     }
   ]
 }
 ```
 
-- `class`: the name of a class `_service.js` exports. Matches
-  `^[A-Z][A-Za-z0-9_]{0,63}$`. At most 10 classes per service.
-- `binding`: the name the fetch handler reaches the class through, as
-  `env.<binding>`. Optional; defaults to the class name in upper snake case
+- `type`: the name of a class `_service.js` exports. Matches
+  `^[A-Z][A-Za-z0-9_]{0,63}$`. At most 10 room types per service.
+- `binding`: the name the fetch handler reaches the room type through, as
+  `env.<binding>`. Optional; defaults to the type name in upper snake case
   (`Room` becomes `ROOM`, `ChatRoom` becomes `CHAT_ROOM`). Follows the
   secret-name grammar (`^[A-Z][A-Z0-9_]{0,63}$`), may not be `DB` or
   `ASSETS`, and may not collide with a secret's name.
 
 `yard service init <name> --realtime` writes this entry for you, with a
-`Room` class bound as `ROOMS`, a working `_service.js` and a minimal
-WebSocket client in `index.html`, and no migration. Declaring a class by hand
-is an edit to settings.json plus a `yard push`, like every other service
+`Room` type bound as `ROOMS`, a working `_service.js` and a minimal
+WebSocket client in `index.html`, and no migration. Declaring a room type by
+hand is an edit to settings.json plus a `yard push`, like every other service
 setting.
 
-**Every declared class must be exported by `_service.js`.** A declared class
-that is not exported answers every request through its binding with a 500
-naming the class. `yard service check` warns about it before you push.
+**Every declared room type must be a class `_service.js` exports.** A
+declared type with no such export answers every request through its binding
+with a 500 naming the type. `yard service check` warns about it before you
+push.
 
-## The class contract
+## The room type contract
 
-A class is plain JavaScript with a fixed set of methods. Yard constructs it
-and calls them; you never instantiate the class yourself.
+A room type is a plain JavaScript class with a fixed set of methods. Yard
+constructs it and calls them; you never instantiate the class yourself.
 
 | Method                                       | Called when                                                                                                                                                              |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -255,7 +256,7 @@ exists from the room's first request and needs no migration.
 | Inbound message               | 32 MiB                                     |
 | CPU per request or message    | 50 ms (time spent awaiting does not count) |
 | Requests per second, per room | 1,000, soft                                |
-| Classes per service           | 10                                         |
+| Room types per service        | 10                                         |
 | WebSocket session             | 24 hours, then closed with code 1000       |
 
 The per-room rate is the reason each conversation gets its own room: one busy
@@ -295,19 +296,19 @@ dashboard.
 
 ## Lifecycle
 
-- **Adding a class:** declare it under `rooms`, export it from
+- **Adding a room type:** declare it under `rooms`, export its class from
   `_service.js`, `yard push`, publish. Rooms are created on first use;
   there is nothing to migrate and nothing to provision.
-- **Removing a class deletes its data.** Removing an entry from `rooms`
-  deletes every room of that class, and all their storage, at the next
+- **Removing a room type deletes its data.** Removing an entry from `rooms`
+  deletes every room of that type, and all their storage, at the next
   deploy of a release without it. `yard push` prints
-  `warning: class Old will be deleted with all its data on deploy` when the
-  live deployment has a class the local settings no longer declare. Copy
-  anything worth keeping into `env.DB` before that deploy goes live.
-- **Renaming a class is a delete plus a create.** `Room` to `ChatRoom`
-  deletes every `Room` with its data and starts `ChatRoom` empty. The class
+  `warning: room type Old will be deleted with all its data on deploy` when
+  the live deployment has a room type the local settings no longer declare.
+  Copy anything worth keeping into `env.DB` before that deploy goes live.
+- **Renaming a room type is a delete plus a create.** `Room` to `ChatRoom`
+  deletes every `Room` with its data and starts `ChatRoom` empty. The type
   name is the identity; if only the name in `env` needs to change, change
-  `binding` and keep `class`.
+  `binding` and keep `type`.
 - **Removing or renaming a service** leaves its rooms behind: a renamed
   service starts with empty rooms. On the project the old rooms are kept
   for 30 days before deletion, so a service removed or renamed by mistake
@@ -321,15 +322,15 @@ dashboard.
 identity headers from the chosen persona on the upgrade request, and alarms
 that fire.
 
-- A service with room classes ends its banner line with `rooms=Room`. In
+- A service with room types ends its banner line with `rooms=Room`. In
   `--json` mode the `ready` event's `services[]` entries gain
   `"rooms": ["Room"]`.
 - Room storage lives under `.yard/dev/rooms/<service>/` and survives
   restarts. `yard dev --reset-rooms` deletes `.yard/dev/rooms/` before
   starting; `--reset-db` does not touch rooms, and `--reset-rooms` does
   not touch the database.
-- The control panel at `/__yard/dev/` gains a Rooms card: each class, its
-  binding, the size stored on disk, and a "Clear stored rooms" button.
+- The control panel at `/__yard/dev/` gains a Rooms card: each room type,
+  its binding, the size stored on disk, and a "Clear stored rooms" button.
   `POST /__yard/dev/api/rooms/reset` does the same from a script.
 - **Live connections end when the runtime restarts**, which happens on every
   save. Clients reconnect, exactly as they must for the 24 hour cap when
@@ -349,9 +350,9 @@ after the event. Locally, the control panel's logs (or
 
 Common mistakes, in the order they usually happen:
 
-- **The class is declared but not exported.** Every request through the
-  binding answers 500 with a message naming the class. `yard service check`
-  warns; the fix is `export class Room` in `_service.js`.
+- **The room type is declared but its class is not exported.** Every
+  request through the binding answers 500 with a message naming the type.
+  `yard service check` warns; the fix is `export class Room` in `_service.js`.
 - **Using ports.** `new WebSocketServer({ port })`, the `ws` package,
   socket.io: none of them can run. A WebSocket is accepted by returning a
   101 from the room's `fetch`, nothing listens.
