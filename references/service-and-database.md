@@ -38,10 +38,10 @@ Each entry of `services` in `.yard/settings.json` is the whole declaration; chan
 
 ```json
 {
-  "version": 8,
+  "version": 9,
   "services": [
     { "dir": "api", "name": "api", "url": "/api", "access": "authenticated", "database_access": true },
-    { "dir": "chat", "name": "chat", "url": "/chat", "access": "users", "rooms": [{ "class": "Room", "binding": "ROOMS" }] }
+    { "dir": "chat", "name": "chat", "url": "/chat", "access": "users", "rooms": [{ "type": "Room", "binding": "ROOMS" }] }
   ]
 }
 ```
@@ -51,7 +51,7 @@ Each entry of `services` in `.yard/settings.json` is the whole declaration; chan
 - `url`: where it serves. Default `/<name>`; `/` takes the whole site (the landing page then serves nothing). Unique; `/__yard` and `/@…` are reserved. `/api` and `/api/v2` can both exist; the longer path wins.
 - `access`: `public` (default, everyone) · `authenticated` (sign-in required) · `users` (only people who bought a tier, are on a trial or subscribe; others go to the sales page; [products](products.md) don't count). Anything but `public` needs `yard_auth` (`upgrade_required` otherwise).
 - `database_access`: `true` binds the database as `env.DB`. The release's migrations create the database; a service flagged before the first migration deploys without `env.DB` and is redeployed with it once the database exists.
-- `rooms`: room classes the service exports, each reachable as `env.<binding>`. Needs `service_rooms`. See [rooms.md](rooms.md).
+- `rooms`: room types the service declares, each reachable as `env.<binding>`. Needs `service_rooms`. See [rooms.md](rooms.md).
 
 ## URLs
 

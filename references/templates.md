@@ -15,7 +15,7 @@ The link opens the dashboard's create dialog on a preview of the repository (ser
 ## What the repository needs
 
 - Public on GitHub, with at least one commit. Git submodules are not included.
-- `.yard/settings.json` at the root (at most 16 KiB), in the current layout (`"version": 8`). Nothing else is required: services, a landing page, migrations, pricing and products are all optional.
+- `.yard/settings.json` at the root (at most 16 KiB), in the current layout (`"version": 9`). Nothing else is required: services, a landing page, migrations, pricing and products are all optional.
 - Every declared service directory holds its files and a `_service.js`. Every product `icon` the settings name exists in the repository (256x256 PNG, JPEG or WebP, at most 1 MiB). A `custom` landing page needs files in its directory, and a `migrations` block needs `.sql` files. Files under the default `.yard/landing-page/` and `.yard/migrations/` count even without a block.
 - The creating team's plan bundle limits (on Basic and Pro: landing page 60 files, 25 MiB each, 100 MiB total; service 600 files, 15 MiB each, 75 MiB total, `_service.js` at most 10 MiB; migrations any number of files, 3 MiB each, 15 MiB total).
 
