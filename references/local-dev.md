@@ -41,7 +41,7 @@ Yard local runtime v1.20260903.1
 Watching for changes. Press Ctrl-C to stop.
 ```
 
-With `--json`, events are `{"event":"ready",...}` (same fields: `landing_page`, `services[]` (an entry gains `"rooms": ["Room"]` when the service declares room classes), `panel`, `persona`, `database`, `migrations_applied`, `migrations_pending`, `secrets_loaded`, `missing_secrets`, `snapshot_source`, `warnings`), then `restart`, `validation_error` (with `errors[]`), `migrations` (with `applied[]`), `log` (with `service`, `level`, `message`), `request`, `runtime_error`, `runtime_download`, `notice`, and `stopped`. Run it in the background and read stdout; `ready` means the URLs answer.
+With `--json`, events are `{"event":"ready",...}` (same fields: `landing_page`, `services[]` (an entry gains `"rooms": ["Room"]` when the service declares room types), `panel`, `persona`, `database`, `migrations_applied`, `migrations_pending`, `secrets_loaded`, `missing_secrets`, `snapshot_source`, `warnings`), then `restart`, `validation_error` (with `errors[]`), `migrations` (with `applied[]`), `log` (with `service`, `level`, `message`), `request`, `runtime_error`, `runtime_download`, `notice`, and `stopped`. Run it in the background and read stdout; `ready` means the URLs answer.
 
 ## URLs
 
@@ -96,7 +96,7 @@ Query the local database from the panel or with `POST /__yard/dev/api/db/query` 
 
 ## Rooms
 
-A service that declares `rooms` runs them locally with the same class contract as hosted: `env.<binding>`, `ctx.acceptWebSocket`, storage, alarms, and the persona's identity headers on the upgrade request. Its banner line ends with `rooms=Room`. Storage lives under `.yard/dev/rooms/<service>/` and survives restarts. `--reset-rooms` (or `POST /__yard/dev/api/rooms/reset`) deletes `.yard/dev/rooms/` and starts every room empty; `--reset-db` leaves rooms alone, and `--reset-rooms` leaves the database alone. Live connections end whenever the runtime restarts, which is every save, so the client's reconnect logic gets exercised early. Contract and examples: [rooms.md](rooms.md).
+A service that declares `rooms` runs them locally with the same room type contract as hosted: `env.<binding>`, `ctx.acceptWebSocket`, storage, alarms, and the persona's identity headers on the upgrade request. Its banner line ends with `rooms=Room`. Storage lives under `.yard/dev/rooms/<service>/` and survives restarts. `--reset-rooms` (or `POST /__yard/dev/api/rooms/reset`) deletes `.yard/dev/rooms/` and starts every room empty; `--reset-db` leaves rooms alone, and `--reset-rooms` leaves the database alone. Live connections end whenever the runtime restarts, which is every save, so the client's reconnect logic gets exercised early. Contract and examples: [rooms.md](rooms.md).
 
 ## Control panel and its API
 
@@ -113,7 +113,7 @@ A service that declares `rooms` runs them locally with the same class contract a
 | `POST /__yard/dev/api/db/reset` | Empty the local database and re-apply |
 | `POST /__yard/dev/api/rooms/reset` | Delete every stored room under `.yard/dev/rooms/`; the database is untouched |
 
-Services with room classes add a Rooms card to the page: each class, its binding, the size stored on disk, and a "Clear stored rooms" button, which calls the rooms reset endpoint.
+Services with room types add a Rooms card to the page: each room type, its binding, the size stored on disk, and a "Clear stored rooms" button, which calls the rooms reset endpoint.
 
 The terminal request log shows the same: `GET /widget/api/abc/ -> service:api /abc/ 200 1.2ms`, or `GET /widget/api/ -> service:api static /index.html 200 …` for a file. POST requests must send `Content-Type: application/json`. For an automated check, start `yard dev --json`, wait for `ready`, exercise the URLs with curl (choosing personas by cookie), read `/__yard/dev/api/requests` and `/api/logs` for what happened, then stop the process.
 
