@@ -15,12 +15,12 @@ yard dev --port 4000           # default 9875
 yard dev --root                # serve at / like a custom domain, instead of /<slug>/
 yard dev --reset-db            # delete .yard/dev/data.sqlite and re-apply migrations
 yard dev --reset-rooms         # delete .yard/dev/rooms/ (stored rooms) before starting
-yard dev --offline             # skip Yard lookups (live project data, remote secret names)
+yard dev --offline             # skip Yard lookups (live project data, remote secret names, the runtime check)
 yard dev --no-panel            # disable the control panel
 yard dev --allow-local-egress  # let services reach localhost and private networks
 ```
 
-Requirements: `.yard/settings.json` with at least one `services` entry or a landing page. The first run downloads the Yard local runtime (about 40 MiB) into `~/.yard/runtime/`. Linux needs glibc 2.35+, macOS 13.5+.
+Requirements: `.yard/settings.json` with at least one `services` entry or a landing page. Each run checks Yard for the current Yard local runtime and downloads a new one (about 40 MiB) into `~/.yard/runtime/`, verified against the checksums Yard publishes. It removes older versions that no running `yard dev` uses. When Yard can't be reached, or with `--offline`, it runs the newest one installed. Linux needs glibc 2.35+, macOS 13.5+.
 
 No login is needed. Logged in, `yard dev` also fetches the project's live public data for the landing page (so `window.yard.project` is real) and warns about secrets set on Yard that have no local value. Offline or logged out, `window.yard.project` is built from the settings.json `pricing` and `products` blocks, with the same tier fields as hosted (key, price, pricing model, features, description, trial fields) and the same product fields except icons. What only Yard holds is missing: `title`, `tagline`, `description` and images are absent (`window.yard.project.title` is `undefined`), so `data-yard="title"` and the like keep the page's own text.
 
