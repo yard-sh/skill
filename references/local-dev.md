@@ -22,7 +22,7 @@ yard dev --allow-local-egress  # let services reach localhost and private networ
 
 Requirements: `.yard/settings.json` with at least one `services` entry or a landing page. The first run downloads the Yard local runtime (about 40 MiB) into `~/.yard/runtime/`. Linux needs glibc 2.35+, macOS 13.5+.
 
-No login is needed. Logged in, `yard dev` also fetches the project's live public data for the landing page (so `window.yard.project` is real) and warns about secrets set on Yard that have no local value. Offline or logged out, `window.yard.project` is built from the settings.json `pricing` and `products` blocks, with the same tier fields as hosted (key, price, pricing model, features, description, trial fields) and the same product fields except icons.
+No login is needed. Logged in, `yard dev` also fetches the project's live public data for the landing page (so `window.yard.project` is real) and warns about secrets set on Yard that have no local value. Offline or logged out, `window.yard.project` is built from the settings.json `pricing` and `products` blocks, with the same tier fields as hosted (key, price, pricing model, features, description, trial fields) and the same product fields except icons. What only Yard holds is missing: `title`, `tagline`, `description` and images are absent (`window.yard.project.title` is `undefined`), so `data-yard="title"` and the like keep the page's own text.
 
 Nothing else is fetched while it runs (`window.yard.ownership()` and `__yard/products` are answered from the persona), so with the runtime downloaded the loop works offline; only checkout and trial links leave the machine.
 
@@ -58,18 +58,18 @@ Local URLs keep the hosted shape so relative links and `fetch("api/...")` behave
 
 There is no real Yard Auth locally. A persona decides which `X-Yard-*` headers the edge stamps and what `__yard/auth/me` returns:
 
-| Persona id | `X-Yard-User-Id` | `X-Yard-Entitlement` | `X-Yard-Tier` / `X-Yard-Tier-Key` |
+| Persona id | Email | `X-Yard-Entitlement` | `X-Yard-Tier` / `X-Yard-Tier-Key` |
 | --- | --- | --- | --- |
 | `anonymous` | (none) | (none) | |
-| `signed-in` | `dev-persona-signed-in` | `none` | |
-| `trial` (only when a tier offers a free trial) | `dev-persona-trial` | `trial` | first tier with a free trial |
-| `user:<tier key>` (one per tier) | `dev-persona-user-<tier key>` | `active` | that tier |
-| `buyer:<product key>` (one per product) | `dev-persona-buyer-<product key>` | `active` | the first tier that lets them buy it |
-| `member` (a team member) | `dev-persona-member` | `owner` | |
+| `signed-in` | `signed-in@example.com` | `none` | |
+| `trial` (only when a tier offers a free trial) | `trial@example.com` | `trial` | first tier with a free trial |
+| `user:<tier key>` (one per tier) | `user-<tier key>@example.com` | `active` | that tier |
+| `buyer:<product key>` (one per product) | `buyer-<product key>@example.com` | `active` | the first tier that lets them buy it |
+| `member` (a team member) | `member@example.com` | `owner` | |
 
-A persona holding a tier gets its name in `X-Yard-Tier` and its key in `X-Yard-Tier-Key`, as hosted. Personas come from the project's pricing tiers and products: the live project data when logged in, otherwise the settings.json `pricing` and `products` blocks. One `user:*` persona exists per tier, named by its key (the tier keyed `pro` is `user:pro`, whatever its name; a settings.json tier without `key` uses the key derived from its name); with no tiers there is a single `user`. One `buyer:*` persona exists per product some tier qualifies for, holding that product and the first qualifying tier ([products.md](products.md#sandboxes-and-local-development)). `X-Yard-Sandbox` is always empty (the project itself). Client-sent `X-Yard-*` headers are stripped, so forged identity does not work locally either. As hosted, a fetch, form post or WebSocket from another origin (a page on a different port included) arrives as `anonymous` whatever the cookie or default; top-level navigations keep the persona.
+Each signed-in persona's `X-Yard-User-Id` is a UUID, like a hosted user id, derived from the persona id: the same in every project and every run, so local rows keep their owners. Read it from `__yard/auth/me` as that persona, or from the personas in `GET /__yard/dev/api/state`, rather than hard-coding it. A persona holding a tier gets its name in `X-Yard-Tier` and its key in `X-Yard-Tier-Key`, as hosted. Personas come from the project's pricing tiers and products: the live project data when logged in, otherwise the settings.json `pricing` and `products` blocks. One `user:*` persona exists per tier, named by its key (the tier keyed `pro` is `user:pro`, whatever its name; a settings.json tier without `key` uses the key derived from its name); with no tiers there is a single `user`. One `buyer:*` persona exists per product some tier qualifies for, holding that product and the first qualifying tier ([products.md](products.md#sandboxes-and-local-development)). `X-Yard-Sandbox` is always empty (the project itself). Client-sent `X-Yard-*` headers are stripped, so forged identity does not work locally either. As hosted, a fetch, form post or WebSocket from another origin (a page on a different port included) arrives as `anonymous` whatever the cookie or default; top-level navigations keep the persona.
 
-The landing page sees the persona too. `window.yard.ownership()` and every `data-yard-when` element resolve from `/<slug>/__yard/auth/ownership` instead of the hosted bridge, with the hosted shape: `anonymous` is signed out; `signed-in` and `member` are signed in without a purchase (a team member on their own page has not bought it either); `trial` is owned with `is_trial: true` and a `trial_expires_at` its tier's trial length from now; `user:<tier key>` and `buyer:<product key>` are owned with `tier_key`, `tier_id` and `tier_name` from the project data and `is_subscription` from the tier's pricing model, plus `tier_keys` and `products` as `__yard/products` reports them. `user.username` is the persona's user id and `avatar_url` is null.
+The landing page sees the persona too. `window.yard.ownership()` and every `data-yard-when` element resolve from `/<slug>/__yard/auth/ownership` instead of the hosted bridge, with the hosted shape: `anonymous` is signed out; `signed-in` and `member` are signed in without a purchase (a team member on their own page has not bought it either); `trial` is owned with `is_trial: true` and a `trial_expires_at` its tier's trial length from now; `user:<tier key>` and `buyer:<product key>` are owned with `tier_key`, `tier_id` and `tier_name` from the project data and `is_subscription` from the tier's pricing model, plus `tier_keys` and `products` as `__yard/products` reports them. `user.id` is the persona's user id, `user.username` its email's local part (`user-pro`) and `avatar_url` is null.
 
 Ways to choose the persona:
 
@@ -80,7 +80,7 @@ Ways to choose the persona:
 
 `__yard/auth/guest` works as hosted, whatever the persona: `POST` issues a guest id in the `yard_dev_guest` cookie and requests then carry `X-Yard-Guest-Id`; `DELETE` (or clearing the cookie) starts over as a new guest. Pair it with `anonymous` to test signed-out play, then a signed-in persona to test moving a guest's data to an account.
 
-Access gating applies exactly as hosted: `authenticated` redirects anonymous visitors to the picker, `users` sends `entitlement: none` visitors to the landing page, and `member` passes every gate.
+Access gating applies exactly as hosted ([gated requests](service-and-database.md#gated-requests)): on a navigation, `authenticated` redirects anonymous visitors to the picker and `users` sends `entitlement: none` visitors to the landing page; a `fetch` or `curl` gets the `401` `sign_in_required` or `403` `purchase_required` JSON instead. `member` passes every gate.
 
 `__yard/products` answers for the persona: a `user:*` persona holds its tier and no products, a `buyer:*` holds its one product, `trial` and `member` hold neither. A consumable's buyer has one unfulfilled purchase (quantity 1); `POST __yard/fulfillments/{transaction_id}` fulfills it as hosted, and it stays fulfilled (unlisted) until `yard dev` restarts. Persona purchases are always paid and never refunded, and nothing simulates an outage, so locally fulfill never answers its `409`s and neither endpoint answers `503`.
 
