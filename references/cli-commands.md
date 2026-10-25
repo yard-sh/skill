@@ -485,7 +485,7 @@ A pin outranks a rollback, which outranks the channel. A bad release is live →
 - `unpin`: back to the channel's newest release (nothing serves with no channel).
 - `promote <from-sandbox> [--to <sandbox>]`: pin the target to what the source serves; no `--to` means the project itself, taking it live. Data and secrets never move.
 
-`rollback`, `pin`, `unpin` and `promote` answer `{ "release_id", "version", "to", "action", "artifacts" }` (`to` is `""` for the project). Elsewhere in JSON output, `""` in a `sandbox` field also means the project itself.
+`rollback`, `pin`, `unpin` and `promote` answer `{ "release_id", "version", "action", "artifacts" }` plus the target as `"project": "<slug>"` or `"sandbox": "<name>"`, the same shape as every `deployed` entry. Elsewhere in JSON output, `""` in a `sandbox` field also means the project itself.
 
 ```sh
 # Try a release in a sandbox, then ship it
