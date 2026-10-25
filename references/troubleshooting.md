@@ -35,7 +35,7 @@ Another process (often a previous `yard dev`) holds the port. Pass `--port <n>`,
 
 ## `yard dev`: the runtime download did not verify
 
-The CLI only runs a runtime whose checksum matches the one it expects; a mismatch means an incomplete or tampered download. Run `yard update`, then `yard dev` again. If it persists, delete `~/.yard/runtime/` and retry.
+The CLI only runs a runtime whose checksum matches the one Yard publishes for it; a mismatch means an incomplete or tampered download. With a runtime already installed, `yard dev` runs that one and prints the error as a notice; otherwise it stops. Run `yard dev` again. If it persists, delete `~/.yard/runtime/` and retry.
 
 ---
 
