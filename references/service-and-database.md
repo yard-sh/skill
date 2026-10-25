@@ -49,7 +49,7 @@ Each entry of `services` in `.yard/settings.json` is the whole declaration; chan
 - `dir`: the bundle directory, relative to the working directory. Directories must not nest.
 - `name`: 1-30 lowercase letters, digits and inner hyphens, unique in the release.
 - `url`: where it serves. Default `/<name>`; `/` takes the whole site (the landing page then serves nothing). Unique; `/__yard` and `/@…` are reserved. `/api` and `/api/v2` can both exist; the longer path wins.
-- `access`: `public` (default, everyone) · `authenticated` (sign-in required) · `users` (only people who bought a tier, are on a trial or subscribe; others go to the sales page; [products](products.md) don't count). Anything but `public` needs `yard_auth` (`upgrade_required` otherwise).
+- `access`: `public` (default, everyone) · `authenticated` (sign-in required) · `users` (only people who bought a tier, are on a trial or subscribe; others go to the sales page; [products](products.md) don't count). Anything but `public` needs `yard_auth` (`upgrade_required` otherwise). What a refused request gets: [gated requests](#gated-requests).
 - `database_access`: `true` binds the database as `env.DB`. The release's migrations create the database; a service flagged before the first migration deploys without `env.DB` and is redeployed with it once the database exists.
 - `rooms`: room types the service declares, each reachable as `env.<binding>`. Needs `service_rooms`. See [rooms.md](rooms.md).
 
@@ -63,7 +63,7 @@ The Yard edge signs visitors in and gives your code trusted headers:
 
 | Header | Value |
 | --- | --- |
-| `X-Yard-User-Id` | Stable user id; use it as your foreign key |
+| `X-Yard-User-Id` | The user's id, a lowercase UUID (`yard dev` personas too). Stable; use it as your foreign key, stored as `TEXT` |
 | `X-Yard-Email` | Email; omitted when the account has none |
 | `X-Yard-Entitlement` | `none` \| `trial` \| `active` \| `owner` |
 | `X-Yard-Tier` | Display **name** of the tier the visitor's purchase, subscription or trial is on. Sent with `trial` and `active`, one-tier projects included; omitted with `none` or `owner`. For display only |
@@ -77,6 +77,17 @@ The Yard edge signs visitors in and gives your code trusted headers:
 - Products bought on top of a tier change none of these headers. A page reads the visitor's products from `__yard/products`; `_service.js` reads them through the API with a `products:read` key ([products.md](products.md#what-someone-holds)).
 - Every member of the owning team gets in everywhere with `owner`, so the team never buys its own project. Entitlement resolves: owner → paid subscription (`active`) → one-time purchase (`active`) → running trial, including a subscription not yet charged (`trial`) → `none`. A canceled or past-due subscription, a refund or a gift the visitor sent to someone else grants nothing. Verdicts are cached up to 60 seconds; there is no push signal, so a long-lived UI polls `__yard/auth/me`.
 - Never implement OAuth, sessions or password storage. Apps running outside the project use Yard Auth as an OpenID Connect client: [api-reference.md](api-reference.md#yard-auth-for-external-apps).
+
+### Gated requests
+
+The edge answers a request an `authenticated` or `users` service refuses before your code runs, and how depends on whether it is a navigation (`Sec-Fetch-Dest: document` or `iframe`, or, without `Sec-Fetch-Dest`, `text/html` in `Accept`):
+
+| Visitor | Navigation | Anything else (`fetch`, curl, a subresource, a WebSocket) |
+| --- | --- | --- |
+| Signed out | `302` to `__yard/auth/login` | `401` `{"error": "sign in required", "error_code": "sign_in_required"}` |
+| Signed in, no purchase (`users`) | `302` to the sales page | `403` `{"error": "purchase required", "error_code": "purchase_required"}` |
+
+So a page's `fetch` sees a lapsed session as a `401`: send the browser to `__yard/auth/login?return=<path>` (or reload, which redirects). An API test's anonymous `curl` gets the `401` too. A private sandbox and a project not yet published answer signed-out requests the same way.
 
 ### `__yard/*` endpoints
 

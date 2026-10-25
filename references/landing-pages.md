@@ -16,7 +16,7 @@ It is the public project JSON (`GET /v1/projects/{username}/{slug}/public`), sna
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `slug`, `title` | `string` | |
+| `slug`, `title` | `string` | `title` is absent under `yard dev` offline or logged out |
 | `tagline` | `string?` | Short marketing line |
 | `description` / `description_html` | `string?` | Markdown source / rendered HTML |
 | `price_cents` | `number` | Default tier price |
@@ -227,7 +227,7 @@ Pages serve under `<username>.yard.sh/<slug>/` (and `/<slug>/@<sandbox>/` in a s
 
 ## Testing a page before users see it
 
-`yard dev` serves the page at `http://localhost:9875/<slug>/` with `embed.js` injected and tab reload on save, so `window.yard.project`, `data-yard` and Buy buttons behave as hosted (live project data when logged in, else a placeholder from settings.json). `ownership()`, `data-yard-when` and `__yard/products` follow the persona (`yard dev --as user:<tier key>` or `--as buyer:<product key>`, or the picker at `/<slug>/__yard/auth/login`). See [local-dev.md](local-dev.md).
+`yard dev` serves the page at `http://localhost:9875/<slug>/` with `embed.js` injected and tab reload on save, so `window.yard.project`, `data-yard` and Buy buttons behave as hosted (live project data when logged in, else a placeholder from settings.json with no `title`, `tagline` or `description`, so those bindings keep the page's own text). `ownership()`, `data-yard-when` and `__yard/products` follow the persona (`yard dev --as user:<tier key>` or `--as buyer:<product key>`, or the picker at `/<slug>/__yard/auth/login`). See [local-dev.md](local-dev.md).
 
 Hosted, the project serves at `https://<username>.yard.sh/<slug>/` and each sandbox at `…/<slug>/@<sandbox>/`, with that sandbox's own pricing and copy in `window.yard.project`. Sandbox URLs are team-only (others get a 403, anonymous visitors sign in first) until `yard sandbox visibility public --sandbox <name>`, which opens one only while the project itself is public and past draft.
 

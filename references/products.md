@@ -181,7 +181,7 @@ Errors are `{"error": "…", "error_code": "…", "error_id": "…"}`:
 
 | Status | Meaning |
 | --- | --- |
-| `401` | Not signed in (page and token routes), or a missing or invalid API key |
+| `401` | Not signed in (page and token routes; on the page route, `sign_in_required`), or a missing or invalid API key |
 | `404` | No such purchase (page and token routes: none of the signed-in user's) |
 | `400` `not_consumable` | Only consumables are fulfilled |
 | `409` `purchase_not_paid` | The payment hasn't completed yet; try again later |
