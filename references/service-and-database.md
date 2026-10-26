@@ -57,6 +57,10 @@ Each entry of `services` in `.yard/settings.json` is the whole declaration; chan
 
 The project serves each service at `https://<team>.yard.sh/<slug><url>/` (custom domain: `https://<domain><url>/`), and a sandbox one segment down at `…/<slug>/@<sandbox><url>/`. Don't build these by hand: `yard service open [--sandbox <name>] [--service <name>]` prints the right one. A path no service claims belongs to the landing page. To send a visitor to buy, link to the sales page (relative `../` from a one-segment mount, or the project's `buy_url`).
 
+## Embedding and response headers
+
+Any site may put the landing page or a `public` service in an iframe. An `authenticated` or `users` service carries the visitor's session, so the edge adds `Content-Security-Policy: frame-ancestors 'self'` to its responses, beside any policy of your own: it renders only in frames from its own origin. To keep a public service out of frames, answer with `Content-Security-Policy: frame-ancestors 'none'` from `_service.js`; a file the bundle serves directly ([above](#paths-and-static-files)) carries no header of yours, so serve such a page from the handler. Every response also gets `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Resource-Policy: same-origin`, and loses any `Set-Cookie` under the `__Host-yard` prefix.
+
 ## Identity: Yard Auth, never your own
 
 The Yard edge signs visitors in and gives your code trusted headers:
