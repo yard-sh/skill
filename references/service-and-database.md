@@ -136,7 +136,7 @@ The project and each sandbox have their own database, shared by every service th
 
 ## Secrets
 
-Third-party keys go in secrets, exposed as `env.<NAME>` to every service of the project or of one sandbox; the two never share values, and a new sandbox starts with none. Write-only; each change **redeploys those services** right away. Never commit keys into a bundle. Names match `^[A-Z][A-Z0-9_]{0,63}$` and can't be `DB`, `ASSETS` or a room binding in the serving release; values are 1-4096 bytes; up to 32 per project or sandbox. There are no plain environment variables: non-secret configuration lives in code. Locally, `yard dev` reads `.yard/dev/secrets.env` instead ([local-dev.md](local-dev.md)).
+Third-party keys go in secrets, exposed as `env.<NAME>` to every service of the project or of one sandbox; the two never share values, and a new sandbox starts with none. Write-only; each change **redeploys those services** right away, and their rooms see it within seconds to minutes ([rooms.md](rooms.md#lifecycle)). Never commit keys into a bundle. Names match `^[A-Z][A-Z0-9_]{0,63}$` and can't be `DB`, `ASSETS` or a room binding in the serving release; values are 1-4096 bytes; up to 32 per project or sandbox. There are no plain environment variables: non-secret configuration lives in code. Locally, `yard dev` reads `.yard/dev/secrets.env` instead ([local-dev.md](local-dev.md)).
 
 ```sh
 yard service secrets set OPENAI_API_KEY=sk-...                     # the project itself

@@ -256,3 +256,16 @@ key or the retired v8 room `class` key, fails the sync with an error naming
 the fix; the release on Yard keeps serving as it was. Make the edit in the
 repo as described above, commit, and publish the next tag - or force-move the
 tag and use the dashboard's Re-sync.
+
+## A room still runs the old code after publishing
+
+After `yard releases publish`, the page and the service are on the new
+version, but a room keeps behaving as before for a while. New code reaches
+rooms in seconds to minutes, after the rest of the service. A room moves to
+the new version when it restarts, which ends its connections, and clients
+reconnect to the new code.
+
+Wait, and judge the deploy by something the room sends, such as a version in
+its first message. Until the room moves, a page built for the new room's
+messages gets the old ones, so give every new field a fallback. See
+[rooms.md](rooms.md#lifecycle).

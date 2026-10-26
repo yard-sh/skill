@@ -208,7 +208,7 @@ connect();
 - **Every session ends after 24 hours.** Yard closes the connection with code
   1000 and reason `Session limit reached`; clients reconnect and carry on.
   Write the client so every close leads to a reconnect, as above, and it also
-  covers restarts and network drops.
+  covers deploys, restarts and network drops.
 - **Messages** may be up to 32 MiB inbound. An inbound message counts as one
   twentieth of a request for billing (see below).
 
@@ -299,6 +299,15 @@ dashboard.
 - **Adding a room type:** declare it under `rooms`, export its class from
   `_service.js`, `yard push`, publish. Rooms are created on first use;
   there is nothing to migrate and nothing to provision.
+- **New code reaches rooms within seconds to minutes.** After a deploy that
+  changes a service (a publish, a settings save, a secret change), its pages
+  and `fetch` can be on the new version while a room still runs the previous
+  one. When the room moves to the new version, its connections end and
+  clients reconnect to the new code; storage is kept. Keep the messages
+  between pages, service and rooms working across one release (add fields
+  with a fallback for when they're missing; don't rename or remove one in
+  the same release), and confirm a deploy by something the room sends, such
+  as a version in its first message, not by the page.
 - **Removing a room type deletes its data.** Removing an entry from `rooms`
   deletes every room of that type, and all their storage, at the next
   deploy of a release without it. `yard push` prints

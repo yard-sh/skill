@@ -85,4 +85,4 @@ When Yard's MCP tools are connected (`https://mcp.yard.sh/`), manage through the
 | [local-dev.md](references/local-dev.md) | `yard dev`: personas, local database, control panel API |
 | [rooms.md](references/rooms.md) | Realtime rooms: WebSockets, storage, limits, lifecycle |
 | [templates.md](references/templates.md) | Making a template and the Create in Yard button |
-| [troubleshooting.md](references/troubleshooting.md) | Install, login, team and settings errors |
+| [troubleshooting.md](references/troubleshooting.md) | Install, login, team and settings errors, and rooms after a deploy |
