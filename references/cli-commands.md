@@ -1,6 +1,6 @@
 # Yard CLI Command Reference
 
-The binary is `yard`. Most commands take `--json` (the result as JSON on stdout, messages on stderr) and many take `--spec <file|->` (a JSON body from a file or stdin). `yard <command> --help` lists every flag.
+The binary is `yard`. Most commands take `--json` (the result as JSON on stdout, messages on stderr) and many take `--spec <file|->` (a JSON body from a file or stdin). `yard <command> --help` lists every flag. A command that asks before something it can't undo refuses without a terminal unless `--yes` is passed, and the refusal quotes the question it would have asked, so running it without `--yes` first shows what it would do.
 
 ---
 
@@ -277,7 +277,7 @@ Adds a channel, private and empty, at the right end of the board. Names are 2-60
 
 ## yard channels delete \<channel\>
 
-Moves its releases and whatever follows it (the project or sandboxes) into `--move-to` (default `Production`), then deletes it. That can change what the project and the followers of either channel serve, so it asks first, naming each one whose release changes (`my-project: v1.4.0 -> v1.5.0`) and each pinned follower, which keeps its pin, with what it would serve once unpinned (`preview is pinned to v0.2.0; on unpin it would serve v0.3.0-beta.1`); without a terminal it refuses unless `--yes`. Production can't be deleted. Flags: `--move-to`, `--yes`, `--json` (`{ "project", "channel", "moved_to", "deleted", "serving": [...], "deployed": [...] }`, shaped as for `releases promote`; a pinned follower's `serving` entry adds `pinned_release` and `on_unpin`), `--project`, `--dir`.
+Moves its releases and whatever follows it (the project or sandboxes) into `--move-to` (default `Production`), then deletes it. That can change what the project and the followers of either channel serve, so it asks first, naming each one whose release changes (`my-project: v1.4.0 -> v1.5.0`) and each pinned follower, which keeps its pin, with what it would serve once unpinned (`preview is pinned to v0.2.0; on unpin it would serve v0.3.0-beta.1`); without a terminal it refuses unless `--yes`, quoting that preview, so run it once without `--yes` to see what would move. Production can't be deleted. Flags: `--move-to`, `--yes`, `--json` (`{ "project", "channel", "moved_to", "deleted", "serving": [...], "deployed": [...] }`, shaped as for `releases promote`; a pinned follower's `serving` entry adds `pinned_release` and `on_unpin`), `--project`, `--dir`.
 
 ---
 
@@ -419,11 +419,11 @@ Scaffolds the landing-page directory in an existing project (in a linked directo
 
 ### yard status
 
-What `yard push` would change, per bundle, without writing: `to_upload`, `unchanged`, `remote_only` (in the release, not local: the next push removes them unless `--keep`), `release_changed` (changed only in the release since the last pull or push; `yard pull` brings them) and `conflicts` (changed on both sides; the push and a pull would stop); `product_icons` also lists `missing` (declared in settings.json, absent locally, which fails a push). The comparison is against the working copy's record of its last pull or push, whichever release that was taken from. It also lists who serves that release and each one's deploy status. Nothing serves a draft, so after a push `serving` is empty; `yard sandbox list` covers every place regardless of release.
+What `yard push` would change, per bundle, without writing: `to_upload`, `unchanged`, `remote_only` (in the release, not local: the next push removes them unless `--keep`), `release_changed` (changed only in the release since the last pull or push; `yard pull` brings them) and `conflicts` (changed on both sides; the push and a pull would stop); `product_icons` also lists `missing` (declared in settings.json, absent locally, which fails a push). The comparison is against the working copy's record of its last pull or push, whichever release that was taken from. A bundle with no such record (`synced: false`, as in a fresh clone) is compared two ways instead: a push sends every file in `to_upload`, a pull stops on each file here whose copy in the release differs, and `settings_merge` is how a pull would merge settings.json by key against nothing, its `conflicting` keys stopping the pull; the text output says so per bundle. It also lists who serves that release and each one's deploy status. Nothing serves a draft, so after a push `serving` is empty; `yard sandbox list` covers every place regardless of release.
 
 ```json
 { "project": "my-slug", "release": "9f3e…", "version": "1.2.0", "draft": false,
-  "page": { "dir": "…/.yard/landing-page", "to_upload": ["index.html"], "unchanged": ["styles.css"], "remote_only": [], "release_changed": [], "conflicts": [] },
+  "page": { "dir": "…/.yard/landing-page", "synced": true, "to_upload": ["index.html"], "unchanged": ["styles.css"], "remote_only": [], "release_changed": [], "conflicts": [] },
   "serving": [{ "sandbox": "", "deploy": "stale" }] }
 ```
 
