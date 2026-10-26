@@ -130,7 +130,7 @@ The project and each sandbox have their own database, shared by every service th
 
 **Times:** store them as integer milliseconds since the epoch (`Date.now()`), written by the service.
 
-**Migrations** are flat numbered files in `.yard/migrations/` (`0001_init.sql`, `0002_add_column.sql`; the directory is `migrations.dir`), one ordered set for the whole project. Never edit an applied one; add a new file. A deploy applies pending files in filename order before new services go live, and the first migration creates the database, services or not. Each file runs once per database: applied files are recorded by filename in the `_yard_migrations` table (tables starting with `_` are reserved for Yard). `yard db migrations list` answers "did my migration run?".
+**Migrations** are flat numbered files in `.yard/migrations/` (`0001_init.sql`, `0002_add_column.sql`; the directory is `migrations.dir`), one ordered set for the whole project. Never edit an applied one; add a new file. A deploy applies pending files in filename order before new services go live, and the first migration creates the database, services or not. Each file runs once per database: applied files are recorded by filename in the `_yard_migrations` table (tables starting with `_` are reserved for Yard; D1 keeps its own `_cf_KV` there too, which `yard db query` lists with the rest and which is not yours to touch). `yard db migrations list` answers "did my migration run?".
 
 **Failed migrations:** a failure aborts the deploy and the previous version keeps serving. Files are **not transactional**: statements before the failing one stay applied and the file is not recorded, so the next deploy re-runs it from the top. Make it re-runnable (`CREATE TABLE IF NOT EXISTS`) or run `yard db migrations mark-applied <file>`. Best: one statement per file, or only idempotent statements.
 
@@ -169,4 +169,4 @@ Sandbox URLs (`…/<slug>/@preview/<service>/`) sign the visitor in and serve on
 
 ## Debugging
 
-`yard service logs [--sandbox <name>] [--limit n] [--since 2h]` returns `console.log` output, uncaught exceptions and abnormal outcomes (e.g. CPU limit exceeded) from the last ~24 h, up to 500 entries, a few seconds behind. `yard db query` answers data questions. There is no `window.yard` inside a service; that exists only on landing pages.
+`yard service logs [--sandbox <name>] [--limit n] [--since 2h]` returns `console.log` output, uncaught exceptions and abnormal outcomes (e.g. CPU limit exceeded) from the last ~24 h, up to 500 entries, usually within a minute of the request. `yard db query` answers data questions. There is no `window.yard` inside a service; that exists only on landing pages.

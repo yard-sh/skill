@@ -45,13 +45,13 @@ Ask first: **guided** (the user drives and you explain each step) or **autopilot
 
 1. Get a one-line description and a price idea.
 2. Propose title, pricing model (one-time or subscription), tiers (each with a stable `key`), seat type, prices and launch plan, flagging anything the team's plan lacks (license keys, activations, trials, gifts, seat-based pricing, extra tiers, custom page, services). Wait for the user's OK.
-3. `yard projects --json`, then `yard init --spec - --json` (schema in [cli-commands.md](references/cli-commands.md#yard-init)), or `yard init --project <slug> --json` to link an existing project.
+3. `yard projects --json`, then `yard init --spec - --json` (schema in [cli-commands.md](references/cli-commands.md#yard-init); a fresh directory then holds the draft's settings.json, pricing included), or `yard init --project <slug> --json` to link an existing project.
 
 Then cover what the project type needs:
 
 - **Installed software** (desktop app, CLI, binary): publish each version with `yard releases publish` and point the app's updater at `GET https://api.yard.sh/v1/updates/latest` with the paying user's license key. Otherwise the buy page has nothing to download. See [releases-and-updates.md](references/releases-and-updates.md).
 - **Web app, API or backend Yard runs:** see Hosted services below. Check the `service` permission while planning, not at push time.
-- **Custom landing page:** `yard init --page`, edit `.yard/landing-page/`, preview with `yard dev`. See [landing-pages.md](references/landing-pages.md).
+- **Custom landing page:** `yard init --page` (works without a terminal in a linked directory), edit `.yard/landing-page/`, preview with `yard dev`. See [landing-pages.md](references/landing-pages.md).
 - **A template others can start from:** see [templates.md](references/templates.md).
 - **Extras on top of a tier** (DLC, add-ons, consumables like gem packs, add-on subscriptions): products, optional and never a replacement for a tier; they need at least one tier and a signed-in buyer who holds it. Propose them only when the software sells extras. See [products.md](references/products.md).
 

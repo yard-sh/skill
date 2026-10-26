@@ -275,7 +275,7 @@ All errors return a JSON body:
 }
 ```
 
-`error_code` is a lowercase code to branch on, present on the errors a client may handle on its own: `unauthorized`, `insufficient_scope`, `upgrade_required`, `stale_base`, `base_required`, `no_team`, `rate_limited`, the plan limits such as `project_limit_reached` and `storage_limit_reached`, `not_consumable`, `purchase_not_paid` and `purchase_refunded` from the fulfill endpoints, and `yard_auth_unavailable` from the Yard Auth bearer endpoints. Never match on the `error` text. `error_id` identifies the request for support.
+`error_code` is a lowercase code to branch on, present on the errors a client may handle on its own: `unauthorized`, `insufficient_scope`, `upgrade_required`, `stale_base`, `base_required`, `no_team`, `rate_limited`, the plan limits such as `project_limit_reached` and `storage_limit_reached`, `not_consumable`, `purchase_not_paid` and `purchase_refunded` from the fulfill endpoints, `tier_required_by_product` from a pricing write that drops a tier a product still requires, and `yard_auth_unavailable` from the Yard Auth bearer endpoints. Never match on the `error` text. `error_id` identifies the request for support.
 
 Common HTTP status codes:
 - `400`: Bad request (validation error)

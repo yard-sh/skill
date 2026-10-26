@@ -29,7 +29,9 @@ The one-time code is valid for 15 minutes. If it wasn't entered and confirmed in
 
 ## `yard dev`: port 9875 is in use
 
-Another process (often a previous `yard dev`) holds the port. Pass `--port <n>`, or stop the other process (`lsof -i :9875` on Linux/macOS, `netstat -ano | findstr :9875` on Windows).
+Another process (often a previous `yard dev`) holds the port. Pass `--port <n>`, or stop the other process (`lsof -i :9875` on Linux/macOS, `netstat -ano | findstr :9875` on Windows). `yard dev` binds the port before it downloads the runtime or asks Yard anything, so this is the first thing it reports.
+
+A second `yard dev` in the same working copy stops instead with `another 'yard dev' is already running for this project (pid N); stop it first, or run it in another working copy`: one session per working copy, since two would share `.yard/dev/` (the database, stored rooms and the runtime). Stop the session named, or run the second from another clone of the project with its own `--port`.
 
 ---
 
@@ -140,7 +142,7 @@ Tiers and products are addressed by key, never by name ([tier keys](pricing-and-
 - **`requires the tier "team", which this release does not have`**: add that tier to the release, or drop it from `requires`.
 - **`has been published as a one-time product and cannot become a consumable product`**: a published key keeps its type for good. Sell the new type under a new key.
 - **`the tier "pro" has been published, so its key is fixed`** from `yard projects tiers edit` (or the product equivalent from `products edit`): a new key would be a different tier, so `add` one under the new key and `rm` the old. Holders keep the old one.
-- **`the tier "pro" is required by product "gems"`** from `yard projects tiers rm`, a push or the dashboard: remove the tier from every product's `requires` first (`yard projects products edit`).
+- **`the tier "pro" is required by products "gems" and "cloud"; remove it from their requires first`** (`error_code` `tier_required_by_product`) from `yard projects tiers rm`, a push or the dashboard: every product still requiring the tier is named; remove the tier from each one's `requires` first (`yard projects products edit`).
 - **"products aren't included in your plan"** / **"your plan supports up to N products"**: the team's `max_products`.
 - **`product icons declared in … not found locally`** from `yard push`: an `icon` path in settings.json has no file. Fix the path, or `yard pull` to bring the release's icons down. Nothing was uploaded.
 - **An icon is refused**: it must be exactly 256x256 PNG, JPEG or WebP, at most 1 MiB; only the dashboard resizes uploads.

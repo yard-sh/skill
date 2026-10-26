@@ -344,8 +344,8 @@ Full `yard dev` guide: [local-dev.md](local-dev.md).
 ## Debugging
 
 `yard service logs [--sandbox <slug>] [--service <name>]` shows console output
-from room handlers and alarms like any other service output, a few seconds
-after the event. Locally, the control panel's logs (or
+from room handlers and alarms like any other service output, usually within
+a minute of the event. Locally, the control panel's logs (or
 `GET /__yard/dev/api/logs`) show the same.
 
 Common mistakes, in the order they usually happen:
