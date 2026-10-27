@@ -37,14 +37,14 @@ A bad release is live: `yard sandbox rollback v1.3.0` puts the earlier one back 
 
 Any team member can install the app ([github.com/apps/yard-sh](https://github.com/apps/yard-sh)) once for the team, on a GitHub account or org; each account or org connects to one team at a time. Start the install from Yard so it lands on the active team (`yard team`); an install begun on the app's GitHub page may not reach the team.
 
-- **Dashboard:** https://dash.yard.sh/configure/integrations → **Install**, then pick the account and the repos. **Manage** on the same page changes which repos the app can access.
+- **Dashboard:** https://dash.yard.sh/integrations → **Install**, then pick the account and the repos. **Manage** on the same page changes which repos the app can access.
 - **CLI:** interactive `yard init` in a GitHub clone offers the install. `yard init --json` and a failing `yard github link` print an install link (works once, expires in 15 minutes): give it to the user and rerun once they finish on GitHub.
 
 Installing on an org needs a GitHub user allowed to install apps there.
 
 ## Syncing releases from GitHub
 
-With the Yard GitHub App installed and the repo linked ([`yard github link`](cli-commands.md#yard-github), or the dashboard's Integrations page under Configure), publishing a GitHub release creates a matching **published** Yard release: tag, title, notes and every asset are copied. Editing the GitHub release re-syncs it; deleting it archives the Yard release (kept instead while the project or a sandbox is pinned or rolled back to it). Synced releases land in the project's **GitHub sync channel** (`yard github link --channel <name>` or the same Integrations row; default `Production`, so publishing on GitHub ships to users). GitHub drafts and pre-releases don't sync; a pre-release syncs once it is marked a full release on GitHub. Ship a beta with `yard releases publish <tag> --channel Beta` instead. A private project doesn't sync.
+With the Yard GitHub App installed and the repo linked ([`yard github link`](cli-commands.md#yard-github), or the dashboard's Integrations page), publishing a GitHub release creates a matching **published** Yard release: tag, title, notes and every asset are copied. Editing the GitHub release re-syncs it; deleting it archives the Yard release (kept instead while the project or a sandbox is pinned or rolled back to it). Synced releases land in the project's **GitHub sync channel** (`yard github link --channel <name>` or the same Integrations row; default `Production`, so publishing on GitHub ships to users). GitHub drafts and pre-releases don't sync; a pre-release syncs once it is marked a full release on GitHub. Ship a beta with `yard releases publish <tag> --channel Beta` instead. A private project doesn't sync.
 
 If the repo has `.yard/settings.json` at the tag, the sync also imports what it declares:
 

@@ -203,7 +203,7 @@ A purchase still unfulfilled **3 days** after it was paid for is refunded automa
 
 ## Webhooks
 
-Webhooks are a Pro feature: one per project (dashboard **Configure** > **Webhooks**), receiving every event, each delivery signed in `X-Yard-Signature`. Every moment has one tier event and one product event, and a product never fires the tier one: `sale.completed`/`product.purchased`, `subscription.renewed`/`product.renewed`, `sale.refunded`/`product.refunded`, `subscription.ending`/`product.ending`, `subscription.resumed`/`product.resumed`, `subscription.past_due`/`product.past_due`, `subscription.canceled`/`product.canceled`. The tier events carry the tier's `tier_key`.
+Webhooks are a Pro feature: one per project (dashboard **Webhooks**), receiving every event, each delivery signed in `X-Yard-Signature`. Every moment has one tier event and one product event, and a product never fires the tier one: `sale.completed`/`product.purchased`, `subscription.renewed`/`product.renewed`, `sale.refunded`/`product.refunded`, `subscription.ending`/`product.ending`, `subscription.resumed`/`product.resumed`, `subscription.past_due`/`product.past_due`, `subscription.canceled`/`product.canceled`. The tier events carry the tier's `tier_key`.
 
 | Event | Fires |
 | --- | --- |
