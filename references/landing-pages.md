@@ -30,9 +30,12 @@ It is the public project JSON (`GET /v1/projects/{username}/{slug}/public`), sna
 | `faq` | `{ question, answer }[]` | |
 | `metadata` | `{ key, value }[]` | Developer-defined pairs |
 | `license_key_enabled` | `boolean` | |
-| `latest_release` | `object?` | Newest published release (tag, name, notes, date) |
+| `latest_release` | `object?` | The release the page is serving, not always the newest: `tag_name`, `release_name?`, `release_notes?` (markdown), `release_notes_html?`, `published_at` (ISO 8601) |
+| `releases` | `object[]?` | Published releases, newest first, in the same shape |
 | `release_count` | `number` | |
 | `team` | `{ username, avatar_url?, … }` | The owning **team** |
+
+A `?` field is left out when empty rather than sent as `null`, so check for a missing key: a release without a name has no `release_name`.
 
 Each tier:
 

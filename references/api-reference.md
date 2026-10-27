@@ -130,6 +130,52 @@ Release files go through upload links (`releases:write`): `POST /v1/projects/{id
 
 Both look only where the request points: with no `sandbox`, at the project's own keys (a sandbox key answers like an unknown key); with `sandbox`, at that sandbox's keys alone ([pricing-and-licensing.md](pricing-and-licensing.md#commerce-in-a-sandbox)).
 
+#### Validate response
+
+A well-formed request answers `200` whether or not the key is usable: read `valid`. Every other field is left out when it doesn't apply, never sent as `null`.
+
+```jsonc
+{
+  "valid": true,                              // always present
+  "is_trial": true,                           // a trial key, running or expired
+  "trial_expires_at": "2026-11-03T00:00:00Z", // trials: when it ends, or ended
+  "trial_days_remaining": 7,                  // trials: 0 once expired
+  "activations_enabled": true,                // these four when the key validated and its scope has device activations on
+  "max_activations": 5,
+  "current_activations": 2,                   // after this request's activation
+  "remaining_activations": 3,
+  "device_activated": true,                   // the request sent device_id and activations are on
+  "sandbox": "staging"                        // the sandbox the key was found in; only when the request named one
+}
+```
+
+```json
+{
+  "valid": false,
+  "error": "Trial period has expired",
+  "error_code": "trial_expired",
+  "is_trial": true,
+  "trial_expired": true,
+  "trial_expires_at": "2026-10-20T00:00:00Z",
+  "trial_days_remaining": 0
+}
+```
+
+`valid: false` always carries `error` (a message for people) and `error_code` (what to branch on). Two codes add a flag: `trial_expired` sets `trial_expired: true` and `license_subscription_inactive` sets `subscription_inactive: true`. `max_activations_reached` keeps the activation counts, with `device_activated: false` and `remaining_activations: 0`.
+
+| `error_code` | Meaning |
+|---|---|
+| `invalid_key_format` | Not `XXXX-XXXX-XXXX-XXXX` (case and surrounding spaces are ignored) |
+| `license_not_found` | No such key where the request looked: the project itself, or the named sandbox. An unknown sandbox answers the same |
+| `license_not_for_project` | The key was bought for another of the team's projects |
+| `license_refunded` | The one-time purchase was refunded. Permanent: offer to buy again |
+| `license_revoked` | A surplus seat, reclaimed when the subscription's seat count shrank; valid again if it grows back |
+| `trial_expired` | The trial ended: offer to buy |
+| `license_subscription_inactive` | The user's subscription ended or a renewal failed. Recovers by itself if a retry succeeds; offer to resubscribe |
+| `purchase_incomplete` | The purchase behind the key never completed |
+| `license_validation_disabled` | The **team's** plan no longer includes license keys, so every key of every project on the team answers this until it does. Nothing is wrong with the user's key |
+| `max_activations_reached` | Only with `device_id`: the device isn't activated and every slot is used. Send the user to their library to free one |
+
 
 ### Subscriptions (a user's subscription, from the team's server)
 
@@ -275,7 +321,7 @@ All errors return a JSON body:
 }
 ```
 
-`error_code` is a lowercase code to branch on, present on the errors a client may handle on its own: `unauthorized`, `insufficient_scope`, `upgrade_required`, `stale_base`, `base_required`, `no_team`, `rate_limited`, the plan limits such as `project_limit_reached` and `storage_limit_reached`, `not_consumable`, `purchase_not_paid` and `purchase_refunded` from the fulfill endpoints, `tier_required_by_product` from a pricing write that drops a tier a product still requires, and `yard_auth_unavailable` from the Yard Auth bearer endpoints. Never match on the `error` text. `error_id` identifies the request for support.
+`error_code` is a lowercase code to branch on, present on the errors a client may handle on its own: `unauthorized`, `insufficient_scope`, `upgrade_required`, `subscription_inactive` (`402`: the team's own Yard plan lapsed, so its API keys stop working), `stale_base`, `base_required`, `no_team`, `rate_limited`, the plan limits such as `project_limit_reached` and `storage_limit_reached`, `not_consumable`, `purchase_not_paid` and `purchase_refunded` from the fulfill endpoints, `tier_required_by_product` from a pricing write that drops a tier a product still requires, and `yard_auth_unavailable` from the Yard Auth bearer endpoints. The [license-gated endpoints](#license-gated-endpoints-no-auth-header) refuse a key with the [validate codes](#validate-response) (`invalid_key_format` is a `400`, `license_not_found` a `404`, and `license_refunded`, `license_revoked`, `trial_expired`, `license_subscription_inactive`, `purchase_incomplete` and `license_validation_disabled` are `403`s), and add `404`s for what the key can't reach: `project_not_found`, `sandbox_not_found`, `channel_not_found` (each also covers a private scope the holder can't see), `no_releases` (nothing published to that stream yet), `release_not_found` and `file_not_found`. Never match on the `error` text. `error_id` identifies the request for support.
 
 Common HTTP status codes:
 - `400`: Bad request (validation error)
