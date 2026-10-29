@@ -1,335 +1,73 @@
 # Yard API Reference
 
-> **What this API is for.** Integrating Yard into shipped software: validating licenses, reading release metadata, managing your users' existing subscriptions, reading and fulfilling the [products](products.md) they buy, and signing your users in with [Yard Auth](#yard-auth-for-external-apps). An agent managing the team's own catalog (projects, pricing, products, releases, pages, services, coupons, users, sales) uses [Yard's MCP server](../SKILL.md#yards-mcp-server) when it is connected, or the **Yard CLI**; see [cli-commands.md](./cli-commands.md).
->
-> Create an API key with the scopes you need at **https://dash.yard.sh/api-keys?action=create**.
+> **What this API is for.** Integrating Yard into shipped software: validating licenses, serving updates, managing your users' existing subscriptions, reading and fulfilling the [products](products.md) they buy, and signing your users in with Yard Auth. An agent managing the team's own catalog (projects, pricing, products, releases, pages, services, coupons, users, sales) uses [Yard's MCP server](../SKILL.md#yards-mcp-server) when it is connected, or the **Yard CLI** ([cli-commands.md](cli-commands.md)). Never create a project over HTTP.
 
-## Base URL
+## Where the reference lives
+
+The endpoint reference is online and generated from the API itself, so this file names no endpoint shapes. **Read an endpoint's page before calling it; never call one from memory.**
+
+- **The index:** https://docs.yard.sh/llms.txt lists every docs page with a one-line description. Each REST API entry names the endpoint, method and path, and the credential it takes: an API key scope, a license key, a Yard Auth access token, or none. Fetch it first to see what exists.
+- **A page as Markdown:** append `.md` to any page URL (`https://docs.yard.sh/v1/api/licenses/validate-license.md`), or request the page with `Accept: text/markdown`. An endpoint page gives the request table, JSON examples, response fields and errors, and is checked against the API on every build.
+- **Exact shapes:** https://api.yard.sh/openapi.json is the OpenAPI 3.1 document of every public operation with its request and response schemas. It is about 550 KB: read `.paths | keys`, or one path, with `jq`, not the whole file.
+- **Start here:** https://docs.yard.sh/v1/api/getting-started/introduction, then [Authentication](https://docs.yard.sh/v1/api/getting-started/authentication) (the scope catalog), [Error Handling](https://docs.yard.sh/v1/api/getting-started/error-handling) and [Conditional Writes](https://docs.yard.sh/v1/api/getting-started/conditional-writes).
+- **Offline:** `yard keys create` prints the scope catalog and `yard <command> --help` is always current. The endpoint reference itself needs the network.
+
+Create an API key with the scopes you need at **https://dash.yard.sh/api-keys?action=create** or with `yard keys create`.
+
+## Base URL and addressing
 
 ```
 https://api.yard.sh
 ```
 
-All API paths below are relative to this base URL (e.g., `/v1/licenses/validate` means `https://api.yard.sh/v1/licenses/validate`).
+Paths are relative to it: `/v1/licenses/validate` is `https://api.yard.sh/v1/licenses/validate`.
 
-## `{username}`: how projects are addressed
+Integration endpoints address a project by its owning team's username plus its slug, `/v1/projects/{username}/{slug}/…`, matching the public URL `https://yard.sh/@{username}/{slug}` and the subdomain `https://{username}.yard.sh/{slug}`. Management endpoints take the project UUID instead, `/v1/projects/{id}/…` (`yard projects show <slug> --json | jq -r .id`). A team username is **not** the user's username (they share one namespace but routinely differ): read it from `yard team --json` → `.active_team.username` or `team.username` on the public project, never assume it matches the signed-in user.
 
-Projects are owned by a **team**, and a project is addressed by its owning team's username plus its slug: `/v1/projects/{username}/{slug}/…`, matching the public URL `https://yard.sh/@{username}/{slug}` and the subdomain `https://{username}.yard.sh/{slug}`.
+## Credentials
 
-A team username is **not** the user's username (they share one namespace but routinely differ). Read it from `yard team --json` → `.active_team.username` or `team.username` on the public project; never assume it matches the signed-in user.
+Three kinds. Each endpoint page says which one it takes.
 
----
-
-## The `sandbox` parameter
-
-A project has its own real data plus any number of **sandboxes**, each an optional copy with simulated commerce ([pricing-and-licensing.md](pricing-and-licensing.md#commerce-in-a-sandbox)). Everywhere, an **omitted or empty `sandbox` means the project itself**, the only place money is real; naming a sandbox selects it.
-
-The parameter travels in the query string on `GET`s and on the subscription-management `POST`s:
-
-| Endpoint | Where `sandbox` goes |
-|---|---|
-| `GET /v1/updates/latest`, `/v1/updates/sandboxes`, `/v1/updates/channels`, `/v1/updates/releases`, and both download paths | query string |
-| `GET /v1/projects/{username}/{slug}/public` | query string |
-| `GET /v1/projects/{username}/{slug}/subscription` | query string |
-| `POST /v1/projects/{username}/{slug}/subscription/cancel` \| `/reactivate` \| `/change` | query string |
-| `GET /v1/projects/{id}/users/{userDisplayId}/products`, `/fulfillments/pending`, `POST …/fulfillments/{transactionId}` | query string |
-| Your users' download and library endpoints | query string |
-
-An unknown sandbox is a `404` naming it. A **private** sandbox (the default) answers only members of the owning team and gives everyone else the same `404`; a **public** one answers anyone. Responses that resolve a sandbox are never cacheable.
-
----
-
-## Authentication
-
-### API Key (recommended for integrations)
+### API key (integrations and the team's servers)
 
 ```
 Authorization: Bearer yard_{key}
 ```
 
-API keys start with `yard_` and belong to a **team** (created with `yard keys create` or at https://dash.yard.sh/api-keys?action=create); a key keeps working when the person who minted it leaves. Send it as `Authorization: Bearer yard_…`.
+API keys start with `yard_` and belong to a **team** (created with `yard keys create` or in the dashboard); a key keeps working when the person who minted it leaves. A key reaches exactly the endpoints its scopes allow: a listed endpoint whose scope the key lacks answers `403` with `insufficient_scope`, and an endpoint outside the REST API section answers `401` whatever the scopes. Scopes do not imply one another; pick only what you use.
 
-**Scopes:** a key reaches exactly the endpoints its scopes allow. A listed endpoint whose scope the key lacks answers `403` with `insufficient_scope`; an endpoint outside this reference answers `401` whatever the scopes. Scopes do not imply one another; pick only what you use. `yard keys create` prints the catalog.
+- **Integration scopes** (`metadata:read`, `licenses:validate`, `licenses:activate`) are safe to ship inside the app your users run. Every install shares the key and its rate limit, so validate once at launch and keep the answer.
+- **Management scopes** act on the team's account, its release files and its users: keep keys holding them on servers the team controls. `releases:read` downloads every file in a public channel without a purchase, the subscription scopes act on the subscription of any user named by email, the product scopes read and fulfill any user's purchases, and `db:query` runs SQL. A shipped app lists channels, checks for updates and downloads with the user's **license key** instead.
+- A key with the matching scope can do over HTTP what the CLI does, except manage API keys, the team, or money.
 
-Integration scopes are safe to ship inside the app your users run. Every install shares the key and its rate limit, so validate once at launch and keep the answer:
+### License key (the update endpoints)
 
-| Scope | What it allows |
-|-------|----------------|
-| `metadata:read` | Read a project's public metadata and pricing |
-| `licenses:validate` | Validate a license key |
-| `licenses:activate` | Activate or deactivate a device against a license |
+A built-in updater reaches the `/v1/updates/…` endpoints with just the paying user's license key, as `?license_key=` or `Authorization: Bearer <license key>`, so no shared secret ships in the binary. The workflow is in [releases-and-updates.md](releases-and-updates.md#downloading-releases-with-a-license-key); the pages are the Updates category of the reference.
 
-Management scopes act on the team's account, its release files and its users; keep keys holding them on servers the team controls. That includes `releases:read` (downloads every file in a public channel without a purchase), the subscription scopes (act on the subscription of any user named by email) and the product scopes (read and fulfill any user's purchases). An app lists channels, checks for updates and downloads with the user's license key instead ([License-Gated Endpoints](#license-gated-endpoints-no-auth-header)):
+### Yard Auth access token (a user, in an external app)
 
-| Scope | What it allows |
-|-------|----------------|
-| `projects:read` | List and read the team's projects, including drafts, pricing history and published tier and product keys |
-| `projects:write` | Create, update and delete projects, and change pricing and page content |
-| `releases:read` | List public channels and their releases, and download release files |
-| `releases:write` | Create, edit, publish and archive releases, manage channels, and read draft contents |
-| `sandboxes:read` | List sandboxes and the releases they serve |
-| `sandboxes:write` | Create, rename and delete sandboxes, and pin or roll back what they serve |
-| `services:read` | List services, deployments, logs and metrics, secret names and applied migrations |
-| `services:write` | Create, update and delete services, their files and their migrations |
-| `secrets:write` | Set and delete secret values |
-| `db:query` | Run SQL, including writes, against every database of the project (sensitive) |
-| `users:read` | List the people who bought your projects, with their license keys and subscriptions |
-| `subscriptions:read` | Read a user's project subscription status |
-| `subscriptions:write` | Cancel, reactivate or change a user's project subscription |
-| `transactions:read` | List and inspect sales |
-| `transactions:write` | Change the trial on a sale |
-| `products:read` | See which products a user holds, the tiers that let them buy more, and purchases waiting to be fulfilled |
-| `products:fulfill` | Mark consumable purchases delivered so they are not refunded |
-| `coupons:read` | List coupons, their analytics and the sales they were used on |
-| `coupons:write` | Create, update and delete coupons |
+Software that runs **outside** the project (a desktop or mobile app, a backend on another host) signs its users in with the project's own OpenID Connect issuer; the issuer, client, redirect URIs, scopes and claims are on [Yard Auth: External apps](https://docs.yard.sh/v1/platform/services/yard-auth#external-apps), and the hosted side is in [service-and-database.md](service-and-database.md#identity-yard-auth-never-your-own). The access token identifies **one user of one project**, never the team, and reaches exactly three endpoints: [Get User Info](https://docs.yard.sh/v1/api/yard-auth/get-userinfo) (identity and entitlement; call it on every launch, since purchase status is not in the ID token and changes underneath it), [A User's Products](https://docs.yard.sh/v1/api/yard-auth/get-user-products) and [Fulfill a User's Purchase](https://docs.yard.sh/v1/api/yard-auth/fulfill-user-purchase). Requires `.team_permissions.yard_auth` on the owning team.
 
 ### Sessions (CLI and dashboard only)
 
-The CLI and dashboard use a signed-in session, not an API key. Integrations must use an API key.
+The CLI and dashboard use a signed-in session; integrations never do. Whatever an API key's scopes, it cannot mint or manage API keys, manage the team or its plan, payouts or payment methods, custom domains, project media, the webhook secret, the GitHub App install, or account security: those endpoints are not in the REST API section and answer `401`.
 
-### Yard Auth access tokens (a user, in an external app)
+## The `sandbox` parameter
 
-```
-Authorization: Bearer {Yard Auth access token}
-```
+A project has its own real data plus any number of **sandboxes**, each an optional copy with simulated commerce ([pricing-and-licensing.md](pricing-and-licensing.md#commerce-in-a-sandbox)). Everywhere, an **omitted or empty `sandbox` means the project itself**, the only place money is real; naming a sandbox selects it. Each page says where the parameter travels: the query string on reads and on the subscription-management writes, the request body on license validation. An unknown sandbox is a `404` naming it. A **private** sandbox (the default) answers only members of the owning team and gives everyone else the same `404`; a **public** one answers anyone. Responses that resolve a sandbox are never cacheable.
 
-A token your app obtained for one of its users from the project's own OpenID Connect issuer. It identifies **a user of one project**, never the team, and it reaches exactly three endpoints: `GET /v1/yard-auth/userinfo`, `GET /v1/yard-auth/products` and `POST /v1/yard-auth/fulfillments/{transaction_id}`. See [Yard Auth for external apps](#yard-auth-for-external-apps).
-
----
-
-## API-Key Endpoints
-
-Everything below takes `Authorization: Bearer yard_…` with the listed scope. The management endpoints (projects, pricing, products, releases, channels, sandboxes, services, secrets, database, users, transactions, coupons) are documented with request and response shapes at https://yard.sh/docs/v1/api; a key with the matching scope can do over HTTP what the CLI does, except manage API keys, the team, or money.
-
-### Projects
-
-| Method | Path | Scope | Description |
-|---|---|---|---|
-| `GET` | `/v1/projects/{username}/{slug}/metadata` | `metadata:read` | Read project metadata (title, launch stage, tiers with their keys, pricing) |
-
-### Releases (public channel reads)
-
-| Method | Path | Scope | Description |
-|---|---|---|---|
-| `GET` | `/v1/projects/{id}/channels` | `releases:read` | List the project's public channels |
-| `GET` | `/v1/projects/{id}/project-releases` | `releases:read` | List releases, optionally one channel's |
-| `GET` | `/v1/projects/{id}/project-releases/by-version/{version}` | `releases:read` | Read a release by version |
-| `GET` | `/v1/projects/{id}/project-releases/{releaseId}` | `releases:read` | Read a release by id |
-| `GET` | `/v1/projects/{id}/project-releases/{releaseId}/files/{fileId}/download` | `releases:read` | Download a release file (302 to the file) |
-
-A key holding only `releases:read` sees public channels and no drafts or archived releases; a key that also holds `releases:write` sees everything a session sees.
-
-Release files go through upload links (`releases:write`): `POST /v1/projects/{id}/downloads/uploads?release=<release id>` with `filename` and `size_bytes`, a `PUT` of the bytes to the answered `url` with its `headers`, then `POST /v1/projects/{id}/downloads/uploads/{uploadId}/finalize?release=<release id>` with `filename`. Both `POST`s take the file's base ([Release writes need a base](#release-writes-need-a-base)): `If-None-Match: *` for a new filename, or the `content_hash` of the file it replaces. Finalize answers `202` and adds the file in the background: `GET /v1/projects/{id}/downloads/uploads/{uploadId}` every few seconds until `state` is `done` (with the release `file`) or `failed` (with `error`; finalize again, and on `503 finalize_interrupted` without uploading again).
-
-### Licenses
-
-| Method | Path | Scope | Description |
-|---|---|---|---|
-| `POST` | `/v1/licenses/validate` | `licenses:validate` | Validate a license key for the project in `project_id`, or its sandbox in `sandbox` (optionally bind to a device) |
-| `POST` | `/v1/licenses/deactivate` | `licenses:activate` | Deactivate a device from a license of the project in `project_id`, or its sandbox in `sandbox` |
-
-Both look only where the request points: with no `sandbox`, at the project's own keys (a sandbox key answers like an unknown key); with `sandbox`, at that sandbox's keys alone ([pricing-and-licensing.md](pricing-and-licensing.md#commerce-in-a-sandbox)).
-
-#### Validate response
-
-A well-formed request answers `200` whether or not the key is usable: read `valid`. Every other field is left out when it doesn't apply, never sent as `null`.
-
-```jsonc
-{
-  "valid": true,                              // always present
-  "is_trial": true,                           // a trial key, running or expired
-  "trial_expires_at": "2026-11-03T00:00:00Z", // trials: when it ends, or ended
-  "trial_days_remaining": 7,                  // trials: 0 once expired
-  "activations_enabled": true,                // these four when the key validated and its scope has device activations on
-  "max_activations": 5,
-  "current_activations": 2,                   // after this request's activation
-  "remaining_activations": 3,
-  "device_activated": true,                   // the request sent device_id and activations are on
-  "sandbox": "staging"                        // the sandbox the key was found in; only when the request named one
-}
-```
-
-```json
-{
-  "valid": false,
-  "error": "Trial period has expired",
-  "error_code": "trial_expired",
-  "is_trial": true,
-  "trial_expired": true,
-  "trial_expires_at": "2026-10-20T00:00:00Z",
-  "trial_days_remaining": 0
-}
-```
-
-`valid: false` always carries `error` (a message for people) and `error_code` (what to branch on). Two codes add a flag: `trial_expired` sets `trial_expired: true` and `license_subscription_inactive` sets `subscription_inactive: true`. `max_activations_reached` keeps the activation counts, with `device_activated: false` and `remaining_activations: 0`.
-
-| `error_code` | Meaning |
-|---|---|
-| `invalid_key_format` | Not `XXXX-XXXX-XXXX-XXXX` (case and surrounding spaces are ignored) |
-| `license_not_found` | No such key where the request looked: the project itself, or the named sandbox. An unknown sandbox answers the same |
-| `license_not_for_project` | The key was bought for another of the team's projects |
-| `license_refunded` | The one-time purchase was refunded. Permanent: offer to buy again |
-| `license_revoked` | A surplus seat, reclaimed when the subscription's seat count shrank; valid again if it grows back |
-| `trial_expired` | The trial ended: offer to buy |
-| `license_subscription_inactive` | The user's subscription ended or a renewal failed. Recovers by itself if a retry succeeds; offer to resubscribe |
-| `purchase_incomplete` | The purchase behind the key never completed |
-| `license_validation_disabled` | The **team's** plan no longer includes license keys, so every key of every project on the team answers this until it does. Nothing is wrong with the user's key |
-| `max_activations_reached` | Only with `device_id`: the device isn't activated and every slot is used. Send the user to their library to free one |
-
-
-### Subscriptions (a user's subscription, from the team's server)
-
-A subscription only starts at Yard's own checkout, when the user subscribes. These endpoints read and manage one that already exists.
-
-| Method | Path | Scope | Description |
-|---|---|---|---|
-| `GET` | `/v1/projects/{username}/{slug}/subscription` | `subscriptions:read` | Read a user's subscription status for a project |
-| `POST` | `/v1/projects/{username}/{slug}/subscription/cancel` | `subscriptions:write` | Cancel a user's subscription |
-| `POST` | `/v1/projects/{username}/{slug}/subscription/reactivate` | `subscriptions:write` | Reactivate a cancelled subscription |
-| `POST` | `/v1/projects/{username}/{slug}/subscription/change` | `subscriptions:write` | Change a user's tier or billing interval |
-
-### Products (a user's products, from the team's server)
-
-`{id}` is the project UUID; every route takes `?sandbox=<name>` for a sandbox's simulated purchases. Shapes, errors and the delivery loop: [products.md](products.md#delivering-consumables).
-
-| Method | Path | Scope | Description |
-|---|---|---|---|
-| `GET` | `/v1/projects/{id}/users/{userDisplayId}/products` | `products:read` | One user's `tier_keys` and held `products`. `{userDisplayId}` is `user_` plus the first 8 characters of the user id, or the email; `404` if they never bought from the project, `409` if two buyers share the 8 characters |
-| `GET` | `/v1/projects/{id}/fulfillments/pending` | `products:read` | Every paid consumable purchase not yet fulfilled, oldest first. Paged by `after` (the last `transaction_id`) and `limit` (max 100); `has_more` says whether to read on |
-| `POST` | `/v1/projects/{id}/fulfillments/{transactionId}` | `products:fulfill` | Mark a consumable purchase delivered; idempotent |
-
-Product setup goes through the CLI ([cli-commands.md](cli-commands.md#yard-projects-products)); the HTTP equivalents are `PUT /v1/projects/{id}/products?release=<release id>` (`projects:write`, the whole set) and `PUT` / `DELETE /v1/projects/{id}/products/{key}/icon?release=<release id>` (`releases:write`).
-
----
-
-## License-Gated Endpoints (no auth header)
-
-Built-in updaters in your software can reach these directly with just a license key. No `Authorization` header.
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/v1/updates/latest?license_key={key}` | Check for the latest release by license key |
-| `GET` | `/v1/updates/latest/download/{filename}?license_key={key}` | Download the latest release file by license key |
-| `GET` | `/v1/updates/sandboxes?license_key={key}` | The key's own update stream: the project itself, or the sandbox it was bought in |
-| `GET` | `/v1/updates/channels?license_key={key}` | List the release channels the key may see, for a channel picker |
-| `GET` | `/v1/updates/releases?license_key={key}` | List the project's, one sandbox's or one channel's releases (GitHub Releases list shape) |
-| `GET` | `/v1/updates/releases/{version}/download/{filename}?license_key={key}` | Download a file from a specific release |
-
-All take an optional `sandbox`, and `latest`, `releases` and the by-version download also take `channel`; details and response shapes in [releases-and-updates.md](releases-and-updates.md#downloading-releases-with-a-license-key).
-
----
-
-## Yard Auth for external apps
-
-Inside a hosted service, Yard Auth is the edge: it signs users in and stamps `X-Yard-*` headers (see [service-and-database.md](service-and-database.md#identity-yard-auth-never-your-own)). Software that runs **outside** the project (a desktop or mobile app, a backend on another host) uses the same Yard Auth as a standard **OpenID Connect** client: every project with Yard Auth is its own issuer, and any OIDC library works against it. Requires the `yard_auth` permission on the owning team (Basic and Pro; check `yard me --json` → `.team_permissions.yard_auth`).
-
-| Item | Value |
-|---|---|
-| Issuer | `https://yard.sh/auth/application/o/yard-auth-<project id>/` |
-| Discovery | `https://yard.sh/auth/application/o/yard-auth-<project id>/.well-known/openid-configuration` |
-| Client id | `yard-auth-<project id>` |
-| Client secret | From the project's **Auth** page in the dashboard (rotate it there too) |
-| Redirect URIs | Managed on the same page: absolute `https` URLs, or `http` on `localhost` while developing; no wildcards or fragments; up to 10, matched exactly |
-| Grant | Authorization code (PKCE recommended) |
-| Scopes | `openid email profile yard_account offline_access` |
-| Token lifetime | Access tokens last one hour; use the refresh token (`offline_access`) to get a new one |
-
-`<project id>` is the project's UUID (`yard projects --json` → `.id`), not its slug. The project has exactly one client: the id above and the secret from the page. Archived projects and teams whose plan lacks `yard_auth` have none; when the plan returns, the client is registered again with a new secret and the redirect URIs must be added again. There is no self-service client registration, so an app is always the team's own app for its own project.
-
-**Claims** in the ID token and from the issuer's own userinfo endpoint:
-
-| Claim | Meaning |
-|---|---|
-| `sub` | Stable identifier of the person for this issuer |
-| `email` | The person's email address |
-| `email_verified` | Whether that address has been confirmed |
-| `yard_user_id` | The Yard user id, the same value the edge sends a hosted service as `X-Yard-User-Id`; present from the first sign-in |
-
-Purchase status is **not** in the token, because it changes underneath a token's lifetime. Read it from Yard:
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| `GET` | `/v1/yard-auth/userinfo` | `Authorization: Bearer <access token>` | The person behind the token and their standing on the project the token was issued for |
-| `GET` | `/v1/yard-auth/products` | `Authorization: Bearer <access token>` | Their products: `{ "authenticated": true, "tier_keys": [...], "products": [...] }`, for the project itself (sandbox purchases are reachable only from a sandbox's hosted pages) |
-| `POST` | `/v1/yard-auth/fulfillments/{transaction_id}` | `Authorization: Bearer <access token>` | Mark one of their consumable purchases delivered after the app granted it |
-
-```json
-{
-  "sub": "…",
-  "user_id": "<uuid>",
-  "email": "a@b.c",
-  "email_verified": true,
-  "entitlement": "active",
-  "tier": "Pro",
-  "tier_key": "pro"
-}
-```
-
-`entitlement` is `none` \| `trial` \| `active` \| `owner`, resolved the same way as the edge header; `tier` (display name) and `tier_key` (stable key; gate features on it) are omitted when the entitlement carries no tier. Call it on every launch rather than caching the verdict for the token's lifetime.
-
-The products and fulfill endpoints answer exactly like the hosted `__yard/products` and `__yard/fulfillments/{transaction_id}` ([products.md](products.md#what-someone-holds)), with the same `error_code`s. Like the update endpoints, all three answer any origin, so an Electron or Tauri app can call them directly.
-
-**Consent and disconnecting.** The first sign-in to a project's app shows the person a consent screen naming the app and what it receives (email address, Yard account, purchase status). The answer is remembered until they disconnect the app on the security page of their Yard account ("Connected apps"), which also revokes the app's refresh tokens; the app's next refresh fails and it has to send the person through sign-in again.
-
----
-
-## Public Endpoints (no auth)
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/v1/projects/public` | List all public projects |
-| `GET` | `/v1/projects/{username}/{slug}/public` | Get a public project (addressed under the owning team's username - this is the shape `window.yard.project` exposes, each tier with its `key` and the `products` on sale) |
-| `GET` | `/v1/teams/{id}` | Get a team's public profile and its projects. `{id}` is the team's UUID **or** its username (the subject is always a team, never an individual user) |
-| `GET` | `/v1/search?q={query}` | Search projects |
-| `POST` | `/v1/coupons/validate` | Validate a coupon code |
-
----
-
-## Not reachable with an API key
-
-These need a signed-in session (CLI or dashboard) whatever scopes a key holds:
-
-- Minting, listing, editing or deleting API keys (`yard keys …`, the dashboard)
-- Team management: members, roles, invites, ownership, switching the active team
-- Payout onboarding, payouts, payment methods, the team's own plan
-- Custom domains, project images and videos, regenerating a webhook signing secret, the webhook's delivery history and test events
-- The GitHub App install, its repo list and the team's linked repos (linking or unlinking one project's repo takes `projects:write`)
-- Account, session and security-device management
-
----
+Shipped software never sends `sandbox`: a sandbox license key is found only when the request names its sandbox, so a simulated purchase can never unlock the real build.
 
 ## Release writes need a base
 
-The dashboard, the CLI and agents may change the same release, so every write to a release's contents says what it was based on: its files, pricing, products, product icons, page content, services, download settings and files, gallery, and `PATCH /v1/projects/{id}/project-releases/{releaseId}`. Creating, publishing, promoting and archiving a release take no base.
+The dashboard, the CLI and agents may change the same release, so every write to a release's contents says what it was based on: `If-Match: "<version>"` (a file's `content_hash`, a product icon's `sha256`, or the matching entry of the release's `versions`), or `If-None-Match: *` to create a file that must not exist yet. A write answers its new version in `ETag`. A base that moved is `412` with `stale_base`: read it again and redo the change on what it holds now. A write with no base is `428` with `base_required`. Creating, publishing, promoting and archiving a release take no base. The writes this covers, with examples: [Conditional Writes](https://docs.yard.sh/v1/api/getting-started/conditional-writes).
 
-- `If-Match: "<version>"`: a file's `content_hash`, a product icon's `sha256`, or the matching entry of the release's `versions` from `GET /v1/projects/{id}/project-releases/{releaseId}` (`release`, `pricing`, `products`, `settings` for the download buttons, `landing_page`, `gallery`, and `services` by name).
-- `If-None-Match: *`: create a file that must not exist yet.
+## Errors
 
-A write answers its new version in `ETag`. A base that moved is `412` with `stale_base`: read it again and redo the change on what it holds now. A write with no base is `428` with `base_required`. Details: https://docs.yard.sh/v1/api/getting-started/conditional-writes.
+Every error is a JSON body with `error` (a message for people), `error_code` (a lowercase code to branch on, present on the errors a client may handle on its own) and `error_id` (identifies the request for support). **Branch on `error_code`, never on the `error` text.** The codes and status conventions are on [Error Handling](https://docs.yard.sh/v1/api/getting-started/error-handling), and each endpoint page lists its own. The ones an agent meets most:
 
----
-
-## Error Response Format
-
-All errors return a JSON body:
-
-```json
-{
-  "error": "Human-readable error message",
-  "error_code": "insufficient_scope",
-  "error_id": "3f9a1c2e"
-}
-```
-
-`error_code` is a lowercase code to branch on, present on the errors a client may handle on its own: `unauthorized`, `insufficient_scope`, `upgrade_required`, `subscription_inactive` (`402`: the team's own Yard plan lapsed, so its API keys stop working), `stale_base`, `base_required`, `no_team`, `rate_limited`, the plan limits such as `project_limit_reached` and `storage_limit_reached`, `not_consumable`, `purchase_not_paid` and `purchase_refunded` from the fulfill endpoints, `tier_required_by_product` from a pricing write that drops a tier a product still requires, and `yard_auth_unavailable` from the Yard Auth bearer endpoints. The [license-gated endpoints](#license-gated-endpoints-no-auth-header) refuse a key with the [validate codes](#validate-response) (`invalid_key_format` is a `400`, `license_not_found` a `404`, and `license_refunded`, `license_revoked`, `trial_expired`, `license_subscription_inactive`, `purchase_incomplete` and `license_validation_disabled` are `403`s), and add `404`s for what the key can't reach: `project_not_found`, `sandbox_not_found`, `channel_not_found` (each also covers a private scope the holder can't see), `no_releases` (nothing published to that stream yet), `release_not_found` and `file_not_found`. Never match on the `error` text. `error_id` identifies the request for support.
-
-Common HTTP status codes:
-- `400`: Bad request (validation error)
-- `401`: Unauthorized (missing or invalid token)
-- `403`: Forbidden (insufficient scope, or endpoint requires session auth)
-- `404`: Not found
-- `409`: Conflict (e.g., duplicate resource)
-- `412`: The base a release write sent has moved (`stale_base`)
-- `428`: A release write sent no base (`base_required`)
-- `429`: Rate limited
-- `500`: Internal server error
+- `unauthorized` (`401`) and `insufficient_scope` (`403`): the key, or its scopes.
+- `upgrade_required` and the `*_limit_reached` codes: the team's plan lacks the feature or has reached a limit. `subscription_inactive` (`402`): the team's own Yard plan lapsed, so its API keys stop working until it is active again.
+- `stale_base` (`412`) and `base_required` (`428`): see above.
+- `rate_limited` (`429`): back off and retry.
+- License validation answers `200` with `valid: false` for an unusable key; that is not an HTTP error. Its `error_code` says why, with the full list on [Validate License](https://docs.yard.sh/v1/api/licenses/validate-license); `license_validation_disabled` means the team's plan, not the user's key. The update endpoints refuse a key with the same codes as `403`s.

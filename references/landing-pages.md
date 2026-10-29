@@ -12,7 +12,7 @@ On a custom page the project's public data is a synchronous object: no fetch, no
 window.yard.project; // the project, or null if it couldn't be loaded
 ```
 
-It is the public project JSON (`GET /v1/projects/{username}/{slug}/public`), snake_case as-is. Most useful fields:
+It is the public project JSON ([Get Public Project](https://docs.yard.sh/v1/api/public/get-public-project)), snake_case as-is. Most useful fields:
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -249,7 +249,7 @@ yard sandbox unpin                         # the storefront serves v1.0.0
 
 ## Bundle limits
 
-File count, per-file size and total size come from the team's plan (Basic and Pro: 60 files, 25 MiB per file, 100 MiB total; read `team_permissions` `page_max_*` from `yard me --json` or GET /v1/me for the exact values). Extensions `.html .css .js .json .svg .png .jpg .jpeg .webp .gif .woff2 .mp4 .webm .vtt`; letters, digits and `._-`, at most one subdirectory, no dotfiles; `index.html` required to publish. Video: H.264/AAC `.mp4`, `muted playsinline` to autoplay, `preload="metadata"` with a `poster`, captions as `.vtt`. Each release's bundle is limited separately. `yard push` rejects violations before uploading.
+File count, per-file size and total size come from the team's plan (Basic and Pro: 60 files, 25 MiB per file, 100 MiB total; read `team_permissions` `page_max_*` from `yard me --json` for the exact values). Extensions `.html .css .js .json .svg .png .jpg .jpeg .webp .gif .woff2 .mp4 .webm .vtt`; letters, digits and `._-`, at most one subdirectory, no dotfiles; `index.html` required to publish. Video: H.264/AAC `.mp4`, `muted playsinline` to autoplay, `preload="metadata"` with a `poster`, captions as `.vtt`. Each release's bundle is limited separately. `yard push` rejects violations before uploading.
 
 ---
 

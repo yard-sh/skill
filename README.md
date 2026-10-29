@@ -6,7 +6,7 @@ When this skill is installed, an agent gains awareness of:
 
 - The `yard` CLI (login, init, projects, releases, sandboxes, channels, service, dev, keys, etc.)
 - The `yard init --spec` and `yard releases publish --spec` JSON shapes for non-interactive use
-- The REST API endpoints for license validation, release downloads, managing existing subscriptions, the license-key update server, a user's products and their fulfillment, and Yard Auth for external apps
+- How shipped software uses the REST API: where the generated endpoint reference lives (docs.yard.sh, `llms.txt`, `openapi.json`), the three credentials, the `sandbox` parameter, conditional writes and errors
 - Pricing model details (tiers and tier keys, seat types, volume brackets, Pro-only features)
 - Products sold on top of a tier (one-time add-ons and DLC, consumables, add-on subscriptions): setup, checkout links, reading what a user holds, consumable fulfillment and product webhooks
 - Sandboxes: optional copies of the project, release channels, and the simulated commerce a sandbox carries
@@ -22,7 +22,7 @@ When this skill is installed, an agent gains awareness of:
   - `cli-commands.md`: full CLI reference, including settings.json
   - `pricing-and-licensing.md`: pricing model, license keys, trials, coupons, sandbox commerce
   - `products.md`: products on top of a tier: types, requirements, settings, checkout, holdings, fulfillment, webhooks
-  - `api-reference.md`: REST API endpoints, API key scopes, Yard Auth for external apps
+  - `api-reference.md`: how to find and read the REST API reference, credentials, `sandbox`, conditional writes, errors
   - `landing-pages.md`: custom landing-page runtime and conventions
   - `service-and-database.md`: hosted service and database runtime contract and workflow
   - `local-dev.md`: `yard dev`, personas, the control panel API

@@ -14,7 +14,7 @@ Plan gate: `yard me --json` → `.team_permissions.max_products` (100 per projec
 | `consumable` | Once per purchase, 1-99 at a time | Whatever your app delivers. Bought again and again; each purchase waits for your app to [fulfill it](#delivering-consumables). |
 | `subscription` | `price_cents` monthly, or yearly with optional `yearly_discount_percent` | The product while the subscription runs, renewing on its own schedule, separate from any tier subscription. |
 
-Every product has a **key** (`gems`, `cloud-sync`): checkout, holdings and webhooks name it, so a product can be renamed freely. Same grammar as tier keys: up to 64 lowercase letters, digits, `-` and `_`, starting with a letter or digit, unique within a release. Treat it as permanent: a different key is a different product, so the dashboard and `yard projects products edit` refuse to change a published product's key (`GET /v1/projects/{id}/products/keys` lists them). Once a release carrying a key is published, the key keeps that type for good: giving it another type, even in a later release, is refused ("has been published as a one-time product and cannot become a consumable product").
+Every product has a **key** (`gems`, `cloud-sync`): checkout, holdings and webhooks name it, so a product can be renamed freely. Same grammar as tier keys: up to 64 lowercase letters, digits, `-` and `_`, starting with a letter or digit, unique within a release. Treat it as permanent: a different key is a different product, so the dashboard and `yard projects products edit` refuse to change a published product's key ([Published Product Keys](https://docs.yard.sh/v1/api/projects/published-product-keys) lists them). Once a release carrying a key is published, the key keeps that type for good: giving it another type, even in a later release, is refused ("has been published as a one-time product and cannot become a consumable product").
 
 ---
 
@@ -86,7 +86,7 @@ yard releases publish v1.3.0                                   # the draft goes 
 - `edit <slug> <product-key> [--spec <file|->] [--icon <path> | --remove-icon]`: a partial spec; present fields replace, absent ones stay. A published product's `key` can't change: `add` one under the new key and `rm` the old.
 - `rm <slug> <product-key> [--yes]`: buyers keep what they bought. `--yes` is required without a terminal.
 
-Over HTTP: `PUT /v1/projects/{id}/products?release=<release id>` replaces the whole set (`projects:write`; send back an existing `icon` object to keep it), and `PUT` / `DELETE /v1/projects/{id}/products/{key}/icon?release=` upload (multipart field `image`) or remove one icon (`releases:write`). Icon changes record no product revision.
+Over HTTP: [Update Products](https://docs.yard.sh/v1/api/projects/update-products) replaces the whole set (`projects:write`; send back an existing `icon` object to keep it), and the [product icon](https://docs.yard.sh/v1/api/releases/put-product-icon) endpoints upload or remove one icon (`releases:write`). Icon changes record no product revision.
 
 ---
 
@@ -150,8 +150,8 @@ Every way of reading it returns the same shape:
 | --- | --- |
 | A hosted service's pages or the landing page (browser) | `GET __yard/products` (relative URL, like `__yard/auth/me`). `200` signed in or out: `{"authenticated": true, "tier_keys": [...], "products": [...]}`, or `{"authenticated": false, "tier_keys": [], "products": []}`. `503` `products_unavailable` when Yard can't look them up right now: retry, don't read it as holding nothing |
 | A custom landing page's script | `window.yard.ownership()` → `.tier_keys`, `.products` (empty when signed out) |
-| An app outside the project, with a Yard Auth access token | `GET https://api.yard.sh/v1/yard-auth/products` → `{authenticated: true, tier_keys, products}`, for the project itself only ([api-reference.md](api-reference.md#yard-auth-for-external-apps)) |
-| A server: the team's, or a service's `_service.js` | `GET https://api.yard.sh/v1/projects/{id}/users/{user}/products[?sandbox=<name>]` with an API key holding `products:read`. `{user}` is `user_` plus the first 8 characters of the user id, or their email; adds a `user` object |
+| An app outside the project, with a Yard Auth access token | [A User's Products](https://docs.yard.sh/v1/api/yard-auth/get-user-products) → `{authenticated: true, tier_keys, products}`, for the project itself only ([api-reference.md](api-reference.md#yard-auth-access-token-a-user-in-an-external-app)) |
+| A server: the team's, or a service's `_service.js` | [A User's Products on a Project](https://docs.yard.sh/v1/api/users/project-user-products) with an API key holding `products:read`, `?sandbox=<name>` for a sandbox. `{userDisplayId}` is `user_` plus the first 8 characters of the user id, or their email; adds a `user` object |
 
 The `__yard/*` endpoints are answered by the edge for the visitor's browser session, before your code runs; the edge strips that session before a request reaches `_service.js`, so server code reads holdings through the API. On the team API, `404` means the user never bought from the project, and `409` means two buyers share those 8 characters (pass the email).
 
@@ -161,21 +161,16 @@ The `__yard/*` endpoints are answered by the edge for the visitor's browser sess
 
 Yard can't hand over gems inside your game, so each consumable purchase waits, unfulfilled, until your app delivers it and says so:
 
-1. **Find what's waiting:** holdings with `status: "unfulfilled"`, the `product.purchased` webhook, or `GET /v1/projects/{id}/fulfillments/pending[?sandbox=<name>]` (`products:read`; every paid unfulfilled purchase, oldest first, up to 100 a page via `limit`; while `has_more`, pass the last `transaction_id` as `after`; each with `transaction_id`, `product_key`, `product_name`, `quantity`, `purchased_at`, `user`).
+1. **Find what's waiting:** holdings with `status: "unfulfilled"`, the `product.purchased` webhook, or [List Pending Fulfillments](https://docs.yard.sh/v1/api/fulfillments/list-pending-fulfillments) (`products:read`; every paid unfulfilled purchase, oldest first, paged with `after` and `limit`).
 2. **Grant** `quantity` times the product, keyed on `transaction_id` so a retry never grants twice.
 3. **Fulfill** it by `transaction_id`:
    - from a project page, as the signed-in visitor: `POST __yard/fulfillments/{transaction_id}`
-   - with a Yard Auth access token: `POST https://api.yard.sh/v1/yard-auth/fulfillments/{transaction_id}`
-   - from a server: `POST https://api.yard.sh/v1/projects/{id}/fulfillments/{transaction_id}[?sandbox=<name>]` with `products:fulfill`
+   - with a Yard Auth access token: [Fulfill a User's Purchase](https://docs.yard.sh/v1/api/yard-auth/fulfill-user-purchase)
+   - from a server: [Fulfill a Purchase](https://docs.yard.sh/v1/api/fulfillments/fulfill-purchase) with `products:fulfill`, `?sandbox=<name>` for a sandbox
 
 Fulfill only after a grant your own trusted code made: a page calling `__yard/fulfillments/…` suits a game whose state lives in the player's client; when a service's database holds the balance, verify and fulfill from `_service.js` ([worked example](#worked-example-gem-packs-in-a-hosted-game)).
 
-`200` answers the purchase; fulfilling it again returns it unchanged (original `fulfilled_at`), so retrying is safe:
-
-```json
-{ "transaction_id": "4a3b2c1d-…", "product_key": "gems", "product_name": "500 Gems", "quantity": 2,
-  "purchased_at": "2026-03-05T09:30:00Z", "fulfilled": true, "fulfilled_at": "2026-03-05T09:30:04Z" }
-```
+`200` answers the purchase; fulfilling it again returns it unchanged (original `fulfilled_at`), so retrying is safe. A `409` `purchase_refunded` means do not deliver it; the page lists the other codes.
 
 Errors are `{"error": "…", "error_code": "…", "error_id": "…"}`:
 

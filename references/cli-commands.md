@@ -295,7 +295,7 @@ Links GitHub repos to the team's projects; releases published on a linked repo s
 
 ## yard keys
 
-API keys belong to the active team, not to their creator: anyone on the team can use one and it survives its creator leaving. Check `yard team` before minting. Scopes and what they allow: [api-reference.md](api-reference.md#authentication); a server that reads and fulfills users' products needs `products:read` and `products:fulfill` ([products.md](products.md#delivering-consumables)).
+API keys belong to the active team, not to their creator: anyone on the team can use one and it survives its creator leaving. Check `yard team` before minting. Scopes and what they allow: [Authentication](https://docs.yard.sh/v1/api/getting-started/authentication) and [api-reference.md](api-reference.md#credentials); a server that reads and fulfills users' products needs `products:read` and `products:fulfill` ([products.md](products.md#delivering-consumables)).
 
 - `yard keys list [--json] [--sort createdAt|name|keyPrefix|lastUsedAt] [--direction asc|desc]`: every key's name, prefix (`yard_xxxxxxx`), scopes, last used, created and expiry. The secret is never shown again. `--json`: `{ "items": [...], "total" }`.
 - `yard keys create [name] [--scopes <csv>] [--expires-in-days 7|30|60|90|365] [--spec <file|->] [--json]`: the secret is printed once (`key` in `--json`). Without `--scopes` it prints the scope catalog; a name and `--scopes` need no terminal. The spec is `{ "name", "scopes", "expires_in_days" }`. The name is trimmed and at most 100 characters, and each scope is kept once. A key never expires unless given an expiry. Up to 100 keys per team.
@@ -407,7 +407,7 @@ A push uploads `settings.json` itself, which is how deploys learn each service's
 
 **Exit codes:** `0` success, `1` fatal (auth, network, validation), `2` partial (`push` only: some files uploaded, some failed; see `errors`), `130` stopped with Ctrl-C (`143` for SIGTERM): what was in flight is cancelled, an open upload link included, and a push keeps what it already sent.
 
-**Limits, checked before any upload.** File counts and sizes come from the team's plan (`team_permissions` `page_max_*`, `service_max_*`, `migrations_max_*` in GET /v1/me); the numbers below are Basic's and Pro's.
+**Limits, checked before any upload.** File counts and sizes come from the team's plan (`team_permissions` `page_max_*`, `service_max_*`, `migrations_max_*` from `yard me --json`); the numbers below are Basic's and Pro's.
 
 - Landing page: ≤60 files, ≤25 MiB each, ≤100 MiB total; `.html .css .js .json .svg .png .jpg .jpeg .webp .gif .woff2 .mp4 .webm .vtt`; letters, digits and `._-`, at most one subdirectory, no dotfiles; `index.html` required to publish.
 - Service: ≤600 files, ≤15 MiB each, ≤75 MiB total, `_service.js` ≤10 MiB on every plan, ≤7 nested folders, paths ≤200 characters; the landing page types except `.mp4 .webm .vtt`, plus `.mjs .woff .ttf .otf .txt .md .ico .map .wasm .webmanifest`; `_service.js` required; `.sql` rejected (migrations are project-level); dot-files, dot-folders and `node_modules/` (any depth) are skipped; `ignore_files` doesn't apply.

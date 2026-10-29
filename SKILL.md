@@ -31,6 +31,7 @@ Install: `curl -fsSL https://cli.yard.sh | sh` (Windows: `irm https://cli.yard.s
 ## Ground rules
 
 - **Manage with Yard's MCP server or the CLI, integrate with the API.** Creating projects, pricing, products, releases, pages, services, coupons and reading users and sales is management work: through [Yard's MCP tools](#yards-mcp-server) when they are connected, otherwise the CLI. The REST API is for shipped software: license validation, updates, managing existing subscriptions, reading and fulfilling a user's products, Yard Auth in external apps. Never create a project over HTTP.
+- **Never call an API endpoint from memory.** The REST API reference is online and generated from the API: fetch https://docs.yard.sh/llms.txt to see what exists (each endpoint with the credential it takes), then read the endpoint's page as Markdown by adding `.md` to its URL; https://api.yard.sh/openapi.json has exact shapes. [api-reference.md](references/api-reference.md) says how to read it.
 - **Non-interactive only.** Use `--json` (the result as JSON on stdout, messages on stderr) and `--spec <file|->` (JSON input). Never pipe answers into a prompt; bare `yard init` is for humans.
 - **Teams own everything.** Projects, coupons, API keys and payouts belong to a team, and the CLI acts as the active team (`yard team --json` → `.active_team`), which is stored on the account and shared with the dashboard. Projects live under the team's username: `https://<team>.yard.sh/<slug>/`.
 - **Check entitlements, never assume them.** Read `yard me --json` → `.team_permissions` before proposing a feature (`.permissions` is the user's own and gates nothing on a project). Never quote a plan's features from memory.
@@ -49,7 +50,7 @@ Ask first: **guided** (the user drives and you explain each step) or **autopilot
 
 Then cover what the project type needs:
 
-- **Installed software** (desktop app, CLI, binary): publish each version with `yard releases publish` and point the app's updater at `GET https://api.yard.sh/v1/updates/latest` with the paying user's license key. Otherwise the buy page has nothing to download. See [releases-and-updates.md](references/releases-and-updates.md).
+- **Installed software** (desktop app, CLI, binary): publish each version with `yard releases publish` and point the app's updater at `GET https://api.yard.sh/v1/updates/latest` ([Get Latest Update](https://docs.yard.sh/v1/api/updates/get-latest-update)) with the paying user's license key. Otherwise the buy page has nothing to download. See [releases-and-updates.md](references/releases-and-updates.md).
 - **Web app, API or backend Yard runs:** see Hosted services below. Check the `service` permission while planning, not at push time.
 - **Custom landing page:** `yard init --page` (works without a terminal in a linked directory), edit `.yard/landing-page/`, preview with `yard dev`. See [landing-pages.md](references/landing-pages.md).
 - **A template others can start from:** see [templates.md](references/templates.md).
@@ -66,7 +67,7 @@ Then cover what the project type needs:
 
 When Yard's MCP tools are connected (`https://mcp.yard.sh/`), manage through them; they need no CLI install or `yard login`. The user approved them for one team, and the team sees each change as yours. `whoami` names the team and what its plan includes; connecting needs `.team_permissions.agent_access`. `yard dev` still needs the CLI.
 
-- Read `yard://docs/getting-started/mcp-server` (or call `read_yard_docs` with that topic) first; `read_yard_docs` reads every page of Yard's docs.
+- Read `yard://docs/getting-started/mcp-server` (or call `read_yard_docs` with that topic) first. `read_yard_docs` reads the Platform pages of Yard's docs; the REST API reference, guides and webhooks are fetched from https://docs.yard.sh ([api-reference.md](references/api-reference.md#where-the-reference-lives)).
 - Every change takes an optional `note`: a short summary of the change. The user's team reads it beside the change, and watches your calls live in the dashboard.
 - A change to something that exists passes the `base_hash` you read for it: a file's `content_hash`, or one of the release's `versions` from `get_release`. `stale_base` means it changed since; read it again and make your change to what it holds now.
 - Text files go inline with `write_file`. Binary files, text over about 1 MB, product icons and release downloads go through `create_upload_link`: `PUT` the bytes to the link, then call `finalize_upload`. A release download is added in the background: call `get_upload` every few seconds until it is `done` or `failed`.
@@ -79,7 +80,7 @@ When Yard's MCP tools are connected (`https://mcp.yard.sh/`), manage through the
 | [pricing-and-licensing.md](references/pricing-and-licensing.md) | Tiers and tier keys, seats, launch stages, coupons, trials, gifts, license keys, activations, sandbox commerce |
 | [products.md](references/products.md) | Products sold on top of a tier: types, requirements, settings.json and `yard projects products`, checkout links, holdings, consumable fulfillment, webhooks |
 | [releases-and-updates.md](references/releases-and-updates.md) | Releases, channels, rollback, GitHub App install and sync, the update server |
-| [api-reference.md](references/api-reference.md) | REST API, API key scopes, Yard Auth for external apps |
+| [api-reference.md](references/api-reference.md) | Where the REST API reference lives and how to read it, the three credentials, `sandbox`, conditional writes, errors |
 | [landing-pages.md](references/landing-pages.md) | `window.yard`, `data-yard` / `data-action`, user state, signed-in visitors |
 | [service-and-database.md](references/service-and-database.md) | Service contract and paths, settings, Yard Auth headers and endpoints, database, secrets |
 | [local-dev.md](references/local-dev.md) | `yard dev`: personas, local database, control panel API |

@@ -92,38 +92,20 @@ Trials use the same `free_trial` object as everywhere else. Array order is displ
 
 ## Downloading releases with a license key
 
-For shipped software that updates itself. The project must issue license keys (`license_key_enabled`); each user's key is their credential, so revocation, activation limits and per-user limits come for free and no shared secret ships in the binary.
+For shipped software that updates itself. The project must issue license keys (`license_key_enabled`); each user's key is their credential, so revocation, activation limits and per-user limits come for free and no shared secret ships in the binary. Never build a `releases:read` API key into the app: it downloads every public file without a purchase.
 
 ```
 GET https://api.yard.sh/v1/updates/latest
 Authorization: Bearer <license_key>
 ```
 
-or `GET …/v1/updates/latest?license_key=<license_key>` when headers are awkward. Every `/v1/updates/*` endpoint (and the integration-scope routes) answers any origin, so an Electron renderer or Tauri webview can call it directly; 30 requests a minute per IP. The response mirrors GitHub's Releases API:
-
-```json
-{
-  "tag_name": "v1.4.0", "name": "Late April fixes", "body": "## Highlights\n…", "body_html": "<h2>…",
-  "draft": false, "prerelease": false, "created_at": "2026-04-28T16:32:11Z", "published_at": "2026-04-28T16:32:11Z",
-  "assets": [{ "name": "app-darwin-arm64.tar.gz", "content_type": "application/gzip", "size": 12345678,
-    "download_count": 0, "browser_download_url": "https://api.yard.sh/v1/updates/latest/download/app-darwin-arm64.tar.gz?license_key=…" }]
-}
-```
-
-Download with `browser_download_url` (or `GET /v1/updates/latest/download/{filename}?license_key=…`): a `302` to a short-lived URL (5 minutes) that HTTP clients follow automatically.
+or `?license_key=<license_key>` when headers are awkward. The endpoints, with their request tables, response shapes and error codes, are the Updates category of the reference, starting at [Get Latest Update](https://docs.yard.sh/v1/api/updates/get-latest-update) (`.md` on any page URL gives Markdown): the latest release as a GitHub-shaped release whose `assets[].browser_download_url` is a `302` to a short-lived file URL, the key's own update stream, the channels it may see for a channel picker, a stream's or channel's releases, and a file from a specific release. Every update endpoint answers any origin, so an Electron renderer or Tauri webview can call it directly; 30 requests a minute per IP.
 
 **Sandboxes.** Every update endpoint takes an optional `sandbox` parameter; omitted, it reads the project itself (the live build). A `public` sandbox of a public project past draft answers any key entitled to it (an open beta stream: mint testers keys in the beta sandbox and point their updater at it). Anything `private`, a private or draft project and every one of its sandboxes included, answers only keys held by members of the owning team, and everyone else gets the same `404` as an unknown name. A key reaches only where its purchase lives, both ways: a sandbox key cannot read the project's builds and a real key cannot read a sandbox's. To test an updater against a sandbox, buy the project inside it (free, simulated). Drafts are never reachable.
 
-**Channels.** `latest`, `releases` and the by-version download take an optional `channel` (matched case-insensitively): the check then reads that channel's most recently published release, and pins and rollbacks do not apply, so a Stable choice should omit it. A key bought from the project may name any public channel, and a private one only when a member of the owning team holds it; a key bought in a sandbox may name only the channel that sandbox follows, under the same visibility rule. Anything else gets the same `404` as an unknown name. This is the beta-channel picker: list channels with the user's license key, never with a `releases:read` API key built into the app (that key downloads every public file without a purchase).
+**Channels.** The latest-release check, the releases list and the by-version download take an optional `channel` (matched case-insensitively): the check then reads that channel's most recently published release, and pins and rollbacks do not apply, so a Stable choice should omit it. A key bought from the project may name any public channel, and a private one only when a member of the owning team holds it; a key bought in a sandbox may name only the channel that sandbox follows, under the same visibility rule. Anything else gets the same `404` as an unknown name. This is the beta-channel picker: list channels with the user's license key.
 
-Other endpoints (all take `license_key` and optional `sandbox`):
-
-- `GET /v1/updates/sandboxes` (no `sandbox` parameter): the key's own stream, the only one it reaches. A key bought from the project gets `{"project": {"visibility", "current_version", "current_published_at"}, "sandboxes": []}`; a key bought in a sandbox gets `{"sandboxes": [{"slug", …}]}` with that one sandbox and no `project`.
-- `GET /v1/updates/channels`: the release channels the key may see, in board order, for a channel picker. A bare array of `{"name", "visibility", "default", "latest_version", "latest_published_at"}`; `default` marks the channel the project (or the named sandbox) follows; private channels are omitted for non-members, and a sandbox key sees only its sandbox's channel.
-- `GET /v1/updates/releases`: a bare array of that stream's (or, with `channel`, that channel's) releases, newest first, same shape; archived releases excluded; `page` (default 1) and `limit` (default 50, max 100). Use each `browser_download_url` verbatim.
-- `GET /v1/updates/releases/{version}/download/{filename}`: a file from a specific release (`404` `release_not_found` if the stream doesn't hold it).
-
-Errors carry an `error_code` to branch on ([api-reference.md](api-reference.md#error-response-format)); never match the `error` text. `400` `invalid_key_format` (a missing key or filename is an uncoded `400`); `403` `purchase_incomplete` / `license_refunded` (permanent; invite a re-purchase) / `license_revoked` (a surplus seat after the subscription's seat count shrank; restored if it grows back) / `trial_expired` / `license_subscription_inactive` (recovers by itself if the renewal payment succeeds) / `license_validation_disabled` (the team's plan no longer includes license keys; every key for its projects stops until it does, so it says nothing about the user's key); `404` `no_releases` (nothing published to that stream yet: `yard releases publish`), `license_not_found`, `sandbox_not_found` / `channel_not_found` (unknown, private and the holder isn't on the team, or not the channel a sandbox key's sandbox follows), `project_not_found` (no `sandbox` named, and either the project is private or a draft and the holder isn't on the team, or the key was bought in a sandbox), `release_not_found` / `file_not_found`; `429` `rate_limited` (more than 30 requests a minute from one IP).
+Errors carry an `error_code` to branch on ([api-reference.md](api-reference.md#errors)); never match the `error` text, and each page lists its codes. For shipped software: a `403` is about the key or the team's plan (`purchase_incomplete`, `license_refunded` and `license_revoked` want a purchase or a freed seat, `trial_expired` and `license_subscription_inactive` want a purchase or a renewal, `license_validation_disabled` means the team's plan no longer includes license keys and says nothing about the user's key), so keep the installed build working and show the user what the code says; `404` `no_releases` means nothing is published to that stream yet (`yard releases publish`); `429` `rate_limited` means back off.
 
 ## Troubleshooting
 
