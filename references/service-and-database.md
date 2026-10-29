@@ -18,6 +18,21 @@ export default {
 
 Route by path. There is no filesystem and no long-lived process: state belongs in the database (or in a room for live shared state such as chat, presence and multiplayer, see [rooms.md](rooms.md)). Each request has about 50 ms of CPU; time spent awaiting fetches or the database does not count.
 
+The handler also receives a third argument, `ctx`. Use `ctx.waitUntil(promise)` for work the response should not wait for, such as getting a room ready for the visitor who is about to join it, writing a log, or calling a webhook. The request stays alive until the promise settles, even after the response has gone out. Without it, a promise the handler leaves unawaited can be cut off once the response is sent. The work shares the request's CPU time, so keep it short. Hosted services and `yard dev` both pass `ctx`:
+
+```js
+export default {
+  async fetch(request, env, ctx) {
+    const path = new URL(request.url).pathname;
+    // Recorded after the visitor has the page, not before.
+    ctx.waitUntil(env.DB.prepare("INSERT INTO visits (path, at) VALUES (?, ?)").bind(path, Date.now()).run());
+    return env.ASSETS.fetch(request);
+  },
+};
+```
+
+A room class gets its own, different `ctx`: the room's connections, storage and alarm (see [rooms.md](rooms.md#the-room-type-contract)).
+
 ## Paths and static files
 
 A service sees its paths rooted at `/`, whatever its mount: with `"url": "/s"`, a visit to `/<slug>/s/abc` reaches `_service.js` as `/abc`. For each request:

@@ -205,6 +205,14 @@ connect();
   included) arrives signed out, with no `X-Yard-User-Id` or `X-Yard-Guest-Id`. The service's `access` setting gates the upgrade like
   any other request, so `"access": "users"` keeps visitors who haven't
   bought out of every room with no code.
+- **Refusing with a reason.** A browser sees a refused upgrade only as a
+  failed connection, with no status or body. To say why (the room is full,
+  the game has started), accept the connection, send the reason as a
+  message, and close it with a code of your own from 4000 to 4999; the
+  client reads `event.code` in its `close` handler. Only rooms hold
+  connections, so when the fetch handler is the one deciding (for example,
+  no room has space), it forwards the upgrade to a room that does the
+  accepting and closing.
 - **Every session ends after 24 hours.** Yard closes the connection with code
   1000 and reason `Session limit reached`; clients reconnect and carry on.
   Write the client so every close leads to a reconnect, as above, and it also
