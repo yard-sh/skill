@@ -1,109 +1,30 @@
-# Rooms: realtime state inside a hosted service
+# Rooms
 
-Rooms give a hosted service what a database cannot: live state shared by
-several open connections at once. A chat room, a presence list, a shared
-whiteboard, a multiplayer session, a collaborative document: each is one
-room, reached by name from the service's fetch handler, holding its own
-WebSocket connections, its own storage and its own alarm. Requires the
-`service_rooms` permission (Basic and Pro; check `yard me --json` →
-`.team_permissions.service_rooms` before building). Without it the API
-answers `upgrade_required` and `yard push` restates it with the upgrade link.
+Live shared state inside a hosted service: a chat room, a presence list, a shared document or a game session is one room, reached by name from the fetch handler, with its own WebSocket connections, storage and alarm. Docs: https://docs.yard.sh/v1/platform/services/rooms.md (contract, storage, alarms, limits, allowance, deletion, the dashboard's Rooms page), https://docs.yard.sh/v1/platform/projects/allowances.md. Needs `.team_permissions.service_rooms`.
 
-- [What a room is](#what-a-room-is)
-- [Declaring room types](#declaring-room-types)
-- [The room type contract](#the-room-type-contract)
-- [Connections](#connections)
-- [Storage](#storage)
-- [Limits](#limits)
-- [Allowance and overage](#allowance-and-overage)
-- [Lifecycle](#lifecycle)
-- [Local development](#local-development)
-- [Debugging](#debugging)
-- [Testing before users see it](#testing-before-users-see-it)
+- A room is a named instance of a room type, a class `_service.js` exports. Every request for one name reaches the same instance, which handles one event at a time, sleeps when idle (connections stay open) and wakes on the next message, request or alarm. Instance fields do not survive a sleep; storage and connection attachments do.
+- One conversation, game or document is one room; never funnel everything through one name. The fetch handler only picks the room by name and forwards; the room owns the connections and the live state. Lasting data (accounts, history) stays in `env.DB`, which a room reaches through its `env` when the service has `database_access`.
 
-## What a room is
+## Declaring
 
-A room is a named instance of a room type, a class that `_service.js`
-exports. Every request for one name reaches the same instance, wherever it
-comes from, and the instance handles one event at a time, so there is nothing
-to lock and no race between two messages. It wakes on the first request, goes
-idle when nothing is happening (its held connections stay open), and wakes
-again on the next message, request or alarm. Instance fields do not survive
-idling; the room's storage and each connection's attachment do.
+On the service entry in `.yard/settings.json`: `"rooms": [{ "type": "Room", "binding": "ROOMS" }]`. `type` is the exported class name (`^[A-Z][A-Za-z0-9_]{0,63}$`, at most 10 per service); `binding` (optional, default the type in upper snake case) is reached as `env.<binding>` and follows the secret-name grammar. A declared type with no exported class answers every request through its binding with a 500; `yard service check` warns. `yard service init <name> --realtime` scaffolds a working broadcast `Room` plus a WebSocket client.
 
-**One conversation, game or document is one room, and a service has as many
-rooms as it has names.** Never funnel every conversation through one room,
-and never split one conversation across several. The fetch handler picks the
-room by name (`idFromName("lobby")`), forwards the request, and does nothing
-else; the room owns the connections and the state. Rows shared by everything
-and kept for good (accounts, history, billing state) still belong in
-`env.DB`; the live state of one conversation belongs in its room.
+## Contract
 
-## Declaring room types
-
-Room types are declared on the service's entry in `.yard/settings.json`,
-next to `database_access`:
-
-```json
-{
-  "version": 9,
-  "services": [
-    {
-      "dir": "chat",
-      "name": "chat",
-      "url": "/chat",
-      "access": "users",
-      "rooms": [{ "type": "Room", "binding": "ROOMS" }]
-    }
-  ]
-}
-```
-
-- `type`: the name of a class `_service.js` exports. Matches
-  `^[A-Z][A-Za-z0-9_]{0,63}$`. At most 10 room types per service.
-- `binding`: the name the fetch handler reaches the room type through, as
-  `env.<binding>`. Optional; defaults to the type name in upper snake case
-  (`Room` becomes `ROOM`, `ChatRoom` becomes `CHAT_ROOM`). Follows the
-  secret-name grammar (`^[A-Z][A-Z0-9_]{0,63}$`), may not be `DB` or
-  `ASSETS`, and may not collide with a secret's name.
-
-`yard service init <name> --realtime` writes this entry for you, with a
-`Room` type bound as `ROOMS`, a working `_service.js` and a minimal
-WebSocket client in `index.html`, and no migration. Declaring a room type by
-hand is an edit to settings.json plus a `yard push`, like every other service
-setting.
-
-**Every declared room type must be a class `_service.js` exports.** A
-declared type with no such export answers every request through its binding
-with a 500 naming the type. `yard service check` warns about it before you
-push.
-
-## The room type contract
-
-A room type is a plain JavaScript class with a fixed set of methods. Yard
-constructs it and calls them; you never instantiate the class yourself.
-
-| Method                                       | Called when                                                                                                                                                              |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `constructor(ctx, env)`                      | The room wakes (first request, or after idling). `ctx` is the room's context: connections, storage, alarm. `env` is the fetch handler's `env`, secrets and `DB` included. |
-| `fetch(request)`                             | The fetch handler forwarded a request to this room. Return a `Response`; for a WebSocket upgrade, a 101 carrying the client end.                                         |
-| `webSocketMessage(ws, message)`              | A held connection sent a message (`string` or `ArrayBuffer`).                                                                                                            |
-| `webSocketClose(ws, code, reason, wasClean)` | A held connection closed, on either side.                                                                                                                                |
-| `webSocketError(ws, error)`                  | A held connection failed.                                                                                                                                                |
-| `alarm()`                                    | The time set with `ctx.storage.setAlarm(ts)` arrived. Runs with or without connections open; retried if it throws.                                                       |
-
-A complete minimal `Room`: the fetch handler routes `/ws?room=<name>` to the
-room of that name, the room accepts the connection, broadcasts every message
-to everyone else, and keeps a presence count in its storage.
+| Method | Called when |
+| --- | --- |
+| `constructor(ctx, env)` | the room wakes; `ctx` is the room's context (connections, storage, alarm), `env` the service's (secrets, `DB`) |
+| `fetch(request)` | the handler forwarded a request; return a `Response`, or a 101 carrying the client end of a `WebSocketPair` |
+| `webSocketMessage(ws, message)` | a held connection sent a `string` or `ArrayBuffer` |
+| `webSocketClose(ws, code, reason, wasClean)`, `webSocketError(ws, error)` | a held connection closed or failed |
+| `alarm()` | the time set with `ctx.storage.setAlarm(ts)` arrived; runs with no connections open; retried if it throws |
 
 ```js
-// chat/_service.js
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/ws") {
-      const name = url.searchParams.get("room") ?? "lobby";
-      const room = env.ROOMS.get(env.ROOMS.idFromName(name));
+      const room = env.ROOMS.get(env.ROOMS.idFromName(url.searchParams.get("room") ?? "lobby"));
       return room.fetch(request);
     }
     return env.ASSETS.fetch(request);
@@ -111,296 +32,47 @@ export default {
 };
 
 export class Room {
-  constructor(ctx, env) {
-    this.ctx = ctx;
-    this.env = env;
-  }
-
+  constructor(ctx, env) { this.ctx = ctx; this.env = env; }
   async fetch(request) {
-    if (request.headers.get("Upgrade") !== "websocket") {
-      return new Response("Expected a WebSocket", { status: 426 });
-    }
-    const user = request.headers.get("X-Yard-User-Id") ?? "anonymous";
-    const pair = new WebSocketPair();
-    const [client, server] = Object.values(pair);
-    this.ctx.acceptWebSocket(server, [user]);
+    if (request.headers.get("Upgrade") !== "websocket") return new Response("Expected a WebSocket", { status: 426 });
+    const user = request.headers.get("X-Yard-User-Id") ?? request.headers.get("X-Yard-Guest-Id") ?? "anonymous";
+    const [client, server] = Object.values(new WebSocketPair());
+    this.ctx.acceptWebSocket(server, [user]);           // hand the socket to Yard; the room may sleep between messages
     server.serializeAttachment({ user, joined: Date.now() });
-    await this.presence();
     return new Response(null, { status: 101, webSocket: client });
   }
-
   async webSocketMessage(ws, message) {
     const { user } = ws.deserializeAttachment();
     this.broadcast({ type: "message", from: user, text: String(message) }, ws);
   }
-
-  async webSocketClose(ws, code, reason, wasClean) {
-    await this.presence(ws);
-  }
-
-  async webSocketError(ws, error) {
-    await this.presence(ws);
-  }
-
-  // Count the held connections, store the count, and tell everyone.
-  async presence(leaving) {
-    const here = this.ctx.getWebSockets().filter((ws) => ws !== leaving);
-    await this.ctx.storage.put("present", here.length);
-    this.broadcast({ type: "presence", count: here.length }, leaving);
-  }
-
+  async webSocketClose(ws, code, reason, wasClean) { ws.close(code, reason); this.broadcast({ type: "left" }, ws); }
+  async webSocketError(ws, error) { this.broadcast({ type: "left" }, ws); }
   broadcast(payload, except) {
     const text = JSON.stringify(payload);
-    for (const ws of this.ctx.getWebSockets()) {
-      if (ws === except) continue;
-      try {
-        ws.send(text);
-      } catch {}
-    }
+    for (const ws of this.ctx.getWebSockets()) if (ws !== except) { try { ws.send(text); } catch {} }
   }
 }
 ```
 
-The frontend connects with a URL built relative to the page, never
-root-absolute, so it works under any mount path and inside a sandbox:
+The client builds its URL relative to the page (any mount, any sandbox) and reconnects on every close:
 
 ```js
-// index.html, served from the service's mount
-const url = new URL("ws?room=lobby", location.href);
-url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-let ws;
-function connect() {
-  ws = new WebSocket(url);
-  ws.onmessage = (e) => render(JSON.parse(e.data));
-  ws.onclose = () => setTimeout(connect, 1000); // every close is expected; reconnect
-}
-connect();
+const url = new URL("ws?room=lobby", location.href); url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+(function connect() { const ws = new WebSocket(url); ws.onmessage = (e) => render(JSON.parse(e.data)); ws.onclose = () => setTimeout(connect, 1000); })();
 ```
 
-## Connections
+## Connections and storage
 
-- **`ctx.acceptWebSocket(ws, tags)`** hands the server end of the pair to
-  Yard. The room may then go idle between messages while the connection
-  stays open (hibernation), so an idle room costs nothing; the next message
-  wakes it and arrives in `webSocketMessage`. Never attach
-  `ws.addEventListener(...)` to a held connection: its events go to the class
-  methods, not to listeners.
-- **Tags** are a few short strings given at accept time. `ctx.getWebSockets()`
-  returns every held connection, `ctx.getWebSockets(tag)` those carrying a
-  tag, and `ctx.getTags(ws)` a connection's tags. Tag by user id and "send to
-  this user" is a lookup, not a loop.
-- **Attachments** carry per-connection state across idling:
-  `ws.serializeAttachment(value)` stores a small structured value on the
-  connection, `ws.deserializeAttachment()` reads it back. Tags are for
-  lookup; attachments are for state (display name, cursor colour, last seen).
-  Keep an attachment to a few hundred bytes; anything larger goes in storage.
-- **Identity** arrives on the upgrade request like any request: `X-Yard-User-Id`,
-  `X-Yard-Email`, `X-Yard-Entitlement`, `X-Yard-Tier`, `X-Yard-Tier-Key`,
-  `X-Yard-Sandbox`, and `X-Yard-Guest-Id` once the page has given the browser
-  a guest id with `POST __yard/auth/guest` (signed-out play, see
-  [service-and-database.md](service-and-database.md#__yard-endpoints)). Read
-  them in the room's `fetch` before accepting, key a guest's state by
-  `X-Yard-Guest-Id`, and gate per-tier features on `X-Yard-Tier-Key`, not the
-  display name. A socket opened from another origin (another project's page
-  included) arrives signed out, with no `X-Yard-User-Id` or `X-Yard-Guest-Id`. The service's `access` setting gates the upgrade like
-  any other request, so `"access": "users"` keeps visitors who haven't
-  bought out of every room with no code.
-- **Refusing with a reason.** A browser sees a refused upgrade only as a
-  failed connection, with no status or body. To say why (the room is full,
-  the game has started), accept the connection, send the reason as a
-  message, and close it with a code of your own from 4000 to 4999; the
-  client reads `event.code` in its `close` handler. Only rooms hold
-  connections, so when the fetch handler is the one deciding (for example,
-  no room has space), it forwards the upgrade to a room that does the
-  accepting and closing.
-- **Every session ends after 24 hours.** Yard closes the connection with code
-  1000 and reason `Session limit reached`; clients reconnect and carry on.
-  Write the client so every close leads to a reconnect, as above, and it also
-  covers deploys, restarts and network drops.
-- **Messages** may be up to 32 MiB inbound. An inbound message counts as one
-  twentieth of a request for billing (see below).
+- `ctx.acceptWebSocket(ws, tags)` lets the room sleep with the socket open; never add `ws.addEventListener` to a held socket (events go to the class methods). Tags (at most 9; `ctx.getTags(ws)` also returns Yard's own `yard:connected:<ms>`) are for lookup with `ctx.getWebSockets(tag)`; attachments (`ws.serializeAttachment(value)`, `deserializeAttachment()`, a few hundred bytes) are per-connection state that survives a sleep.
+- Identity arrives on the upgrade request like any request (`X-Yard-User-Id`, `X-Yard-Guest-Id`, `X-Yard-Tier-Key`, `X-Yard-Sandbox`; yard-auth.md), and the service's `access` gates the upgrade, so `"access": "users"` keeps non-buyers out of every room with no code. A socket from a page on another host arrives signed out.
+- To refuse with a reason (room full, game started): accept, send the reason, then close with a code of your own from 4000 to 4999; the client reads `event.code`. Yard closes every session after 24 hours with code 1000 and reason `Session limit reached`; clients reconnect.
+- Storage is per room, created on first use, no migrations: `ctx.storage.get/put/delete/list({ prefix, limit })` for structured values, `ctx.storage.sql.exec(sql, ...params)` returning a cursor (`.toArray()`, `.one()`), `ctx.storage.setAlarm(ts)`, `getAlarm()`, `deleteAlarm()` (one pending alarm per room). Keys starting with `__yard_` are Yard's (`__yard_user_alarm` shows in `list()` while an alarm is pending). A room cannot read another room's storage and the handler cannot read any of it: cross-room data goes through `env.DB`. Each sandbox has its own rooms.
 
-## Storage
+## Limits, cost, lifecycle
 
-Each room has its own storage, reachable only from inside that room. It
-exists from the room's first request and needs no migration.
+- Storage 10 GB per room; inbound message 32 MiB; 50 ms CPU per request or message; 10 room types per service; sessions 24 h. A busy room has its own budget, which is why each conversation gets its own room.
+- Monthly allowance: 1,000,000 room requests (a forwarded request, an upgrade or an alarm; 20 inbound messages count as one), 400,000 GB-seconds of compute (0.128 GB for every second a room is awake; a sleeping room costs nothing) and 2 GiB of storage; overage is billed at the allowances page's prices. A recurring alarm costs 86,400,000 / N requests a day: re-arm only while there is work (`ctx.getWebSockets().length > 0`) and use the longest interval that works.
+- New code reaches rooms after the rest of the service, within seconds to minutes; a room moves to the new version when it restarts, which ends its connections (storage is kept). Keep messages between page, service and rooms compatible across one release (add fields with a fallback) and judge a deploy by something the room sends, such as a version in its first message.
+- Removing an entry from `rooms` deletes every room of that type with its storage at the next deploy (`yard push` warns `room type X will be deleted with all its data`); renaming a type is a delete plus a create (rename `binding` to change the `env` name instead). A removed or renamed service leaves its rooms behind: kept 30 days on the project, deleted at once in a sandbox. Copy anything worth keeping into `env.DB` first.
 
-- **Key-value:** `await ctx.storage.get("present")`, `put(key, value)`,
-  `delete(key)`, and `list({ prefix, limit })`, which returns a `Map`. Values
-  are structured-clone-able (objects, arrays, Dates, Maps).
-- **SQL:** `ctx.storage.sql.exec(sql, ...params)` runs SQL against the
-  room's own storage and returns a cursor: `.toArray()` for all rows, `.one()` for
-  exactly one, or iterate it. Create tables on first use; there is no
-  migration stream for rooms:
-
-  ```js
-  this.ctx.storage.sql.exec(
-    "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, sender TEXT, body TEXT, at INTEGER)",
-  );
-  this.ctx.storage.sql.exec("INSERT INTO messages (sender, body, at) VALUES (?, ?, ?)", user, text, Date.now());
-  const recent = this.ctx.storage.sql.exec("SELECT * FROM messages ORDER BY id DESC LIMIT 50").toArray();
-  ```
-
-- **Alarms:** `ctx.storage.setAlarm(Date.now() + 60_000)` schedules one call
-  to `alarm()`; `getAlarm()` reads the pending time and `deleteAlarm()`
-  cancels it. One alarm per room; setting again replaces it. Use it to
-  flush a message buffer to `env.DB`, expire an idle room, or end a game
-  turn. It fires with no connections open.
-- **Cross-room data goes through `env.DB`.** A room cannot read another
-  room's storage and the fetch handler cannot read any of it. The room's
-  `env` is the fetch handler's, so a service with `database_access: true`
-  reaches `env.DB` from inside a room too. Write lasting history there and
-  keep the room's storage for what the room needs now.
-- **Each sandbox has its own rooms**, the way it has its own database. The
-  room named `lobby` in the project and `lobby` in the `preview` sandbox are
-  two rooms that never see each other. `X-Yard-Sandbox` on the upgrade
-  request says which is serving.
-
-## Limits
-
-| Limit                         | Value                                      |
-| ----------------------------- | ------------------------------------------ |
-| Storage per room              | 10 GB                                      |
-| Inbound message               | 32 MiB                                     |
-| CPU per request or message    | 50 ms (time spent awaiting does not count) |
-| Requests per second, per room | 1,000, soft                                |
-| Room types per service        | 10                                         |
-| WebSocket session             | 24 hours, then closed with code 1000       |
-
-The per-room rate is the reason each conversation gets its own room: one busy
-room fills its own budget, and the next room has a budget of its own. A
-design that sends every user through one name has one budget for everyone.
-
-## Allowance and overage
-
-Basic and Pro each include an allowance per calendar month (UTC). Past it,
-each unit is billed on the monthly overage invoice; the rates below are
-approximate, and developers see the live numbers on the Usage page of the
-dashboard.
-
-| Meter         | Included per month | Overage, about        |
-| ------------- | ------------------ | --------------------- |
-| Room requests | 1,000,000          | $0.30 per million     |
-| Compute       | 400,000 GB-seconds | $25 per million GB-s  |
-| Storage       | 2 GiB              | $0.40 per GiB-month   |
-
-- A request is one call into a room: a forwarded HTTP request, a WebSocket
-  upgrade, or an alarm. An inbound WebSocket message counts as one twentieth
-  of a request, so 20 messages cost what one request does.
-- Compute is memory held times the seconds the room is awake handling
-  something. An idle room with connections held costs no compute, which is
-  why connections must be accepted with `acceptWebSocket`, not kept awake
-  with listeners.
-- **Recurring alarms add up.** A room that re-arms its alarm every N ms
-  costs 86,400,000 / N requests a day while it runs: every 250 ms is about
-  345,600 a day, so one room looping all month uses about ten times the
-  monthly allowance.
-  Run a loop (ticks, timers, polling, flushing) only while it has work, e.g.
-  re-arm from `alarm()` only while `ctx.getWebSockets().length > 0` and start
-  it again from `fetch()`; use the longest interval that works, and react to
-  messages instead of polling where you can.
-- Storage is the total across every room, in the project and its sandboxes.
-- Rows read and written are shown on the Usage page but are not billed.
-
-## Lifecycle
-
-- **Adding a room type:** declare it under `rooms`, export its class from
-  `_service.js`, `yard push`, publish. Rooms are created on first use;
-  there is nothing to migrate and nothing to provision.
-- **New code reaches rooms within seconds to minutes.** After a deploy that
-  changes a service (a publish, a settings save, a secret change), its pages
-  and `fetch` can be on the new version while a room still runs the previous
-  one. When the room moves to the new version, its connections end and
-  clients reconnect to the new code; storage is kept. Keep the messages
-  between pages, service and rooms working across one release (add fields
-  with a fallback for when they're missing; don't rename or remove one in
-  the same release), and confirm a deploy by something the room sends, such
-  as a version in its first message, not by the page.
-- **Removing a room type deletes its data.** Removing an entry from `rooms`
-  deletes every room of that type, and all their storage, at the next
-  deploy of a release without it. `yard push` prints
-  `warning: room type Old will be deleted with all its data on deploy` when
-  the live deployment has a room type the local settings no longer declare.
-  Copy anything worth keeping into `env.DB` before that deploy goes live.
-- **Renaming a room type is a delete plus a create.** `Room` to `ChatRoom`
-  deletes every `Room` with its data and starts `ChatRoom` empty. The type
-  name is the identity; if only the name in `env` needs to change, change
-  `binding` and keep `type`.
-- **Removing or renaming a service** leaves its rooms behind: a renamed
-  service starts with empty rooms. On the project the old rooms are kept
-  for 30 days before deletion, so a service removed or renamed by mistake
-  can be put back under its old name without losing them. In a sandbox they
-  are deleted at once.
-- **Deleting a sandbox or the project** deletes its rooms immediately.
-
-## Local development
-
-`yard dev` runs rooms the way Yard hosts them, with the same `ctx` contract,
-identity headers from the chosen persona on the upgrade request, and alarms
-that fire.
-
-- A service with room types ends its banner line with `rooms=Room`. In
-  `--json` mode the `ready` event's `services[]` entries gain
-  `"rooms": ["Room"]`.
-- Room storage lives under `.yard/dev/rooms/<service>/` and survives
-  restarts. `yard dev --reset-rooms` deletes `.yard/dev/rooms/` before
-  starting; `--reset-db` does not touch rooms, and `--reset-rooms` does
-  not touch the database.
-- The control panel at `/__yard/dev/` gains a Rooms card: each room type,
-  its binding, the size stored on disk, and a "Clear stored rooms" button.
-  `POST /__yard/dev/api/rooms/reset` does the same from a script.
-- **Live connections end when the runtime restarts**, which happens on every
-  save. Clients reconnect, exactly as they must for the 24 hour cap when
-  hosted.
-- To see two users in one room, open the page in two browsers (or one
-  private window) and pick a different persona in each; `X-Yard-User-Id`
-  on the upgrade request follows the persona cookie.
-
-Full `yard dev` guide: [local-dev.md](local-dev.md).
-
-## Debugging
-
-`yard service logs [--sandbox <slug>] [--service <name>]` shows console output
-from room handlers and alarms like any other service output, usually within
-a minute of the event. Locally, the control panel's logs (or
-`GET /__yard/dev/api/logs`) show the same.
-
-Common mistakes, in the order they usually happen:
-
-- **The room type is declared but its class is not exported.** Every
-  request through the binding answers 500 with a message naming the type.
-  `yard service check` warns; the fix is `export class Room` in `_service.js`.
-- **Using ports.** `new WebSocketServer({ port })`, the `ws` package,
-  socket.io: none of them can run. A WebSocket is accepted by returning a
-  101 from the room's `fetch`, nothing listens.
-- **Polling the database for liveness.** Presence, typing indicators and
-  cursors are room state, held in the room and pushed over the connections
-  it holds. A table of "last seen" timestamps polled every second is the
-  design rooms replace.
-- **Fanning out from the fetch handler.** The fetch handler holds no
-  connections and cannot see any. It forwards to the room; the room
-  broadcasts. Any loop over connections that is not inside the class is a
-  bug.
-- **Keeping state in instance fields.** `this.users = []` is reset whenever
-  the room wakes. Use storage for room state and attachments for
-  per-connection state.
-- **A root-absolute WebSocket URL.** `new WebSocket("wss://…/ws")` or
-  `"/ws"` breaks under the mount path and in every sandbox. Build it relative
-  to the page.
-- **Writing `env.DB` on every message.** Each message has a 50 ms CPU budget
-  and a row write is not free. Buffer in the room's storage and flush from
-  `alarm()`.
-- **One room for everything.** One name means one budget of about 1,000
-  requests per second for all users. One room per conversation is the rule.
-
-## Testing before users see it
-
-Rooms follow the sandbox flow in
-[service-and-database.md](service-and-database.md#testing-before-users-see-it):
-`yard push`, `yard releases publish <tag>`, `yard sandbox pin <tag> --sandbox
-preview`, then `yard service open --sandbox preview --service chat`. The
-sandbox has its own rooms, so the rooms you fill while testing never appear
-in the project's, and `yard sandbox visibility public --sandbox preview` lets
-testers outside the team join a room from the same URL. Two team members in
-the same sandbox room is the quickest end-to-end check; `yard service logs
---sandbox preview` shows what the room did.
+Common mistakes: ports or the `ws` package (nothing listens; a socket is accepted by returning a 101 from the room's `fetch`), polling `env.DB` for presence, fanning out from the fetch handler, state in instance fields, a root-absolute WebSocket URL, writing `env.DB` on every message (buffer in storage, flush from `alarm()`), one room for everything. `yard dev` runs rooms with the same contract (local-dev.md); hosted output is in `yard service logs`.

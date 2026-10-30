@@ -1,142 +1,40 @@
-# Local development: `yard dev`
+# Local development: yard dev
 
-`yard dev` runs a Yard project on the machine exactly as Yard hosts it: the landing page, every service under its mount path, the `X-Yard-*` identity headers, secrets, and a local database with the project's migrations applied. It is the fast loop; a sandbox remains the check with real commerce before your users see anything.
-
-Use it whenever you are building or changing a service or a custom landing page. Iterate here until the behavior is right, then `yard push`.
-
-## Running it
+`yard dev` runs the project on the machine the way Yard hosts it: the landing page, every service under its mount, the `X-Yard-*` headers from a chosen persona, secrets, rooms, and a local database with the migrations applied. Docs: https://docs.yard.sh/v1/platform/services/local-development.md (first run, personas, panel, differences, troubleshooting). Iterate here, then `yard push`; real commerce (a purchase, a trial, a license key) needs a sandbox.
 
 ```sh
-yard dev                       # serve the working directory (walks up to find .yard/settings.json)
-yard dev --as user:pro         # default persona for requests with no identity cookie (here: the tier keyed pro)
-yard dev --as buyer:gems       # a holder of the product keyed gems
-yard dev --json                # one JSON event per line, for scripts and agents
-yard dev --port 4000           # default 9875
-yard dev --root                # serve at / like a custom domain, instead of /<slug>/
-yard dev --reset-db            # delete .yard/dev/data.sqlite and re-apply migrations
-yard dev --reset-rooms         # delete .yard/dev/rooms/ (stored rooms) before starting
-yard dev --offline             # skip Yard lookups (live project data, remote secret names, the runtime check)
-yard dev --no-panel            # disable the control panel
-yard dev --allow-local-egress  # let services reach localhost and private networks
+yard dev                        # serves http://localhost:9875/<slug>/ ; walks up to .yard/settings.json
+yard dev --as user:pro --json   # default persona; one JSON event per line for scripts and agents
 ```
 
-Requirements: `.yard/settings.json` with at least one `services` entry or a landing page. Each run checks Yard for the current Yard local runtime and downloads a new one (about 40 MiB) into `~/.yard/runtime/`, verified against the checksums Yard publishes. It removes older versions that no running `yard dev` uses. When Yard can't be reached, or with `--offline`, it runs the newest one installed. A cache it can't write (a shared or root-owned install) runs what it holds and installs nothing; another `yard dev` that can write it may remove the running version, which shows at the next restart. Linux needs glibc 2.35+, macOS 13.5+.
+Flags: `--port <n>` (9875), `--dir`, `--project`, `--as <persona>`, `--root` (serve at `/` like a custom domain), `--open`, `--secrets-file <path>`, `--reset-db`, `--reset-rooms`, `--allow-local-egress`, `--no-panel`, `--offline` (no Yard lookups), `--json`.
 
-One `yard dev` runs per working copy: a second one in the same directory stops with `another 'yard dev' is already running for this project (pid N); stop it first, or run it in another working copy`, since both would share `.yard/dev/` (the database, stored rooms and the runtime). The port is bound before the runtime download and the Yard lookups, so a busy port fails at once with `port 9875 is in use; pass --port`.
+- Needs `.yard/settings.json` with a service or a landing page. Each run downloads the current local runtime (about 40 MiB, checksum-verified) into `~/.yard/runtime/`; Linux needs glibc 2.35+, macOS 13.5+. One `yard dev` per working copy (a second refuses, naming the pid); the port is bound first, so a busy port fails at once (`--port`).
+- No login needed. Logged in, `window.yard.project` is the live project (pricing and products from the published release, or from settings.json until something is published: `snapshot_source` `remote_unpublished`); offline or logged out it is built from settings.json without `title`, `tagline`, `description` or images. Nothing else leaves the machine except checkout and trial links and `GET /api/v1/*` on the local origin, which is proxied to Yard.
+- `--json` events: `ready` (`slug`, `runtime_version`, `landing_page`, `services[]` with `url`, `access`, `database` and `rooms` (`[]` when none), `panel`, `persona`, `database`, `migrations_applied`, `migrations_pending`, `secrets_loaded`, `missing_secrets`, `snapshot_source`, `warnings`), then `restart`, `validation_error` (`errors[]`), `migrations`, `log` (`service`, `level`, `message`), `request`, `runtime_error`, `runtime_download`, `notice`, `stopped`. A fatal refusal (lock, port, settings, runtime) prints `Error: ...` on stderr and exits 1 with no event: run it in the background and watch the exit as well as `ready`.
 
-No login is needed. Logged in, `yard dev` also fetches the project's live public data for the landing page (so `window.yard.project` is real) and warns about secrets set on Yard that have no local value. Its `tiers`, `products` and `price_cents` are the published release's; until the project publishes anything Yard has none, so `yard dev` fills them from the settings.json `pricing` and `products` blocks and says so (`Project data   live from Yard; pricing and products from settings.json until something is published`; `snapshot_source` is `remote_unpublished`). Offline or logged out, `window.yard.project` is built from the settings.json `pricing` and `products` blocks, with the same tier fields as hosted (key, price, pricing model, features, description, trial fields) and the same product fields except icons. What only Yard holds is missing: `title`, `tagline`, `description` and images are absent (`window.yard.project.title` is `undefined`), so `data-yard="title"` and the like keep the page's own text.
+## Personas
 
-Nothing else is fetched while it runs (`window.yard.ownership()` and `__yard/products` are answered from the persona), so with the runtime downloaded the loop works offline; only checkout and trial links leave the machine.
+There is no real Yard Auth locally: a persona decides the `X-Yard-*` headers, `__yard/auth/me`, `__yard/products` and `window.yard.ownership()`.
 
-Startup output (human mode):
+| Persona | Entitlement | Tier |
+| --- | --- | --- |
+| `anonymous` | none (no headers) | |
+| `signed-in` | `none` | |
+| `trial` (when a tier offers one) | `trial` | the first tier with a trial |
+| `user:<tier key>` (one per tier) | `active` | that tier |
+| `buyer:<product key>` (one per product) | `active` | the first tier that lets them buy it; holds that product |
+| `member` (a team member) | `owner` | |
 
-```
-Yard local runtime v1.20260903.1
-  Landing page   http://localhost:9875/widget/
-  Service api    http://localhost:9875/widget/api/   access=users  database=yes
-  Service chat   http://localhost:9875/widget/chat/  access=users  database=no  rooms=Room
-  Control panel  http://localhost:9875/__yard/dev/
-  Persona        anonymous (change with --as or in the control panel)
-  Database       .yard/dev/data.sqlite  (2 migrations applied, 0 pending)
-  Secrets        .yard/dev/secrets.env  (3 loaded)
-  Project data   live from Yard
-Watching for changes. Press Ctrl-C to stop.
-```
+Each signed-in persona has a stable UUID `X-Yard-User-Id` (the same in every project and run; read it from `__yard/auth/me` or `/__yard/dev/api/state`, never hard-code it) and an email like `user-pro@example.com`. Personas come from the project's tiers and products (the published release when logged in, else settings.json). Pick one with `--as`, with the cookie (`curl -H 'Cookie: yard_dev_identity=user:pro' http://localhost:9875/<slug>/api/notes`), with `POST /__yard/dev/api/persona {"persona":"member","default":true}`, or at the picker `/<slug>/__yard/auth/login` (`__yard/auth/logout` clears it). A persona the project no longer has serves as `anonymous` with a warning. Gating, header stripping, `__yard/auth/guest` and the cross-origin rules behave as hosted (yard-auth.md).
 
-With `--json`, events are `{"event":"ready",...}` (same fields: `landing_page`, `services[]` (an entry gains `"rooms": ["Room"]` when the service declares room types), `panel`, `persona`, `database`, `migrations_applied`, `migrations_pending`, `secrets_loaded`, `missing_secrets`, `snapshot_source` (`remote`, `remote_unpublished` or `synthesized`), `warnings`), then `restart`, `validation_error` (with `errors[]`), `migrations` (with `applied[]`), `log` (with `service`, `level`, `message`), `request`, `runtime_error`, `runtime_download`, `notice`, and `stopped`. Run it in the background and read stdout; `ready` means the URLs answer.
+## Database, secrets, rooms, panel
 
-## URLs
+- `env.DB` is `.yard/dev/data.sqlite`; `.yard/migrations/*.sql` are applied in order and recorded as hosted (a failing file leaves its earlier statements applied: fix it to re-run from the top, or `--reset-db`). New files apply on save. `yard db query` still targets the hosted database; query the local one from the panel or with `POST /__yard/dev/api/db/query {"sql":"...","params":[]}`.
+- Secrets: `.yard/dev/secrets.env` (`KEY=value`, the hosted grammar; never pushed). A startup warning names remote secrets with no local value.
+- Rooms run with the hosted contract; storage under `.yard/dev/rooms/<service>/` survives restarts (`--reset-rooms` clears it; `--reset-db` leaves rooms alone). Live connections end on every restart, which is every save, so reconnect logic is exercised early.
+- The control panel `http://localhost:9875/__yard/dev/` sits over loopback-only JSON endpoints under `/__yard/dev/api/`: `GET state` (URLs, services, personas, runtime, migrations, secret names), `GET requests?since=&limit=` and `requests/stream` (SSE), `GET logs?service=&since=` and `logs/stream`, `POST persona`, `POST db/query`, `POST migrations/apply`, `POST db/reset`, `POST rooms/reset` (POSTs need `Content-Type: application/json`). An automated check: start `yard dev --json`, wait for `ready`, curl the URLs with persona cookies, read `requests` and `logs`, stop the process.
 
-Local URLs keep the hosted shape so relative links and `fetch("api/...")` behave identically:
+## Differences from hosted
 
-| Hosted | Local |
-| --- | --- |
-| `https://<team>.yard.sh/<slug>/` | `http://localhost:9875/<slug>/` |
-| `https://<team>.yard.sh/<slug>/api/` | `http://localhost:9875/<slug>/api/` |
-
-`/` redirects to `/<slug>/`. Paths reach `_service.js` exactly as hosted ([service-and-database.md](service-and-database.md#paths-and-static-files)): bundle files and folder `index.html` pages are served without running it, and everything else arrives unchanged, rooted at `/` (`/<slug>/api/notes` arrives as `/notes`, `request.url` is `http://localhost:9875/notes`). Root-absolute URLs that break when hosted break here too.
-
-## Personas instead of sign-in
-
-There is no real Yard Auth locally. A persona decides which `X-Yard-*` headers the edge stamps and what `__yard/auth/me` returns:
-
-| Persona id | Email | `X-Yard-Entitlement` | `X-Yard-Tier` / `X-Yard-Tier-Key` |
-| --- | --- | --- | --- |
-| `anonymous` | (none) | (none) | |
-| `signed-in` | `signed-in@example.com` | `none` | |
-| `trial` (only when a tier offers a free trial) | `trial@example.com` | `trial` | first tier with a free trial |
-| `user:<tier key>` (one per tier) | `user-<tier key>@example.com` | `active` | that tier |
-| `buyer:<product key>` (one per product) | `buyer-<product key>@example.com` | `active` | the first tier that lets them buy it |
-| `member` (a team member) | `member@example.com` | `owner` | |
-
-Each signed-in persona's `X-Yard-User-Id` is a UUID, like a hosted user id, derived from the persona id: the same in every project and every run, so local rows keep their owners. Read it from `__yard/auth/me` as that persona, or from the personas in `GET /__yard/dev/api/state`, rather than hard-coding it. A persona holding a tier gets its name in `X-Yard-Tier` and its key in `X-Yard-Tier-Key`, as hosted. Personas come from the project's pricing tiers and products: the published release's when logged in (the settings.json `pricing` and `products` blocks until the project publishes something), otherwise the settings.json blocks. One `user:*` persona exists per tier, named by its key (the tier keyed `pro` is `user:pro`, whatever its name; a settings.json tier without `key` uses the key derived from its name); with no tiers there is a single `user`. One `buyer:*` persona exists per product some tier qualifies for, holding that product and the first qualifying tier ([products.md](products.md#sandboxes-and-local-development)). `X-Yard-Sandbox` is always empty (the project itself). Client-sent `X-Yard-*` headers are stripped, so forged identity does not work locally either. As hosted, a fetch, form post or WebSocket from another origin (a page on a different port included) arrives as `anonymous` whatever the cookie or default; top-level navigations keep the persona.
-
-The landing page sees the persona too. `window.yard.ownership()` and every `data-yard-when` element resolve from `/<slug>/__yard/auth/ownership` instead of the hosted bridge, with the hosted shape: `anonymous` is signed out; `signed-in` and `member` are signed in without a purchase (a team member on their own page has not bought it either); `trial` is owned with `is_trial: true` and a `trial_expires_at` its tier's trial length from now; `user:<tier key>` and `buyer:<product key>` are owned with `tier_key`, `tier_id` and `tier_name` from the project data and `is_subscription` from the tier's pricing model, plus `tier_keys` and `products` as `__yard/products` reports them. `user.id` is the persona's user id, `user.username` its email's local part (`user-pro`) and `avatar_url` is null.
-
-Ways to choose the persona:
-
-- `--as <id>` sets the default for requests without a cookie.
-- Send the cookie directly: `curl -H 'Cookie: yard_dev_identity=user:pro' http://localhost:9875/widget/api/notes`.
-- `POST /__yard/dev/api/persona` with `{"persona":"member","default":true}` (JSON, from the same origin) changes the default for everyone.
-- In a browser, `/<slug>/__yard/auth/login` (or `/<slug>/<service>/__yard/auth/login`) shows the picker; `__yard/auth/logout` clears it. Both honor `return` exactly as hosted.
-
-A cookie or default naming a persona the project no longer has (a tier removed from settings.json, say) is served as `anonymous`, and the terminal warns once per reload (`log` event with `service` `edge` and `level` `warn`), naming the ids there are; pick another at the login page or with `--as`.
-
-`__yard/auth/guest` works as hosted, whatever the persona: `POST` issues a guest id in the `yard_dev_guest` cookie and requests then carry `X-Yard-Guest-Id`; `DELETE` (or clearing the cookie) starts over as a new guest. Pair it with `anonymous` to test signed-out play, then a signed-in persona to test moving a guest's data to an account.
-
-Access gating applies exactly as hosted ([gated requests](service-and-database.md#gated-requests)): on a navigation, `authenticated` redirects anonymous visitors to the picker and `users` sends `entitlement: none` visitors to the landing page; a `fetch` or `curl` gets the `401` `sign_in_required` or `403` `purchase_required` JSON instead. `member` passes every gate.
-
-`__yard/products` answers for the persona: a `user:*` persona holds its tier and no products, a `buyer:*` holds its one product, `trial` and `member` hold neither. A consumable's buyer has one unfulfilled purchase (quantity 1); `POST __yard/fulfillments/{transaction_id}` fulfills it as hosted, and it stays fulfilled (unlisted) until `yard dev` restarts. Persona purchases are always paid and never refunded, and nothing simulates an outage, so locally fulfill never answers its `409`s and neither endpoint answers `503`.
-
-## Secrets
-
-`.yard/dev/secrets.env` holds `KEY=value` lines and is read into `env.KEY`. The directory ignores itself in git and nothing in it is ever pushed. Names follow the `yard service secrets set` grammar (`^[A-Z][A-Z0-9_]{0,63}$`, not `DB` or `ASSETS`); an invalid line is reported as a validation error and the previous values stay in effect. The startup line `Warning: secrets set on Yard but missing locally: ...` names remote secrets with no local value.
-
-## Database and migrations
-
-Services with `database_access: true` get `env.DB` backed by `.yard/dev/data.sqlite`. All of `.yard/migrations/*.sql` is applied in filename order and recorded exactly like a deploy: a file never runs twice, and a failing file leaves its earlier statements applied. The local error says to fix the file so it re-runs from the top or to start over with `--reset-db` (the hosted one suggests `yard db migrations mark-applied`). A failure at startup ends `yard dev`; one while it runs is printed and the services keep running. New files are applied the moment they are saved. There is no local database until a migration exists. `--reset-db` (or `POST /__yard/dev/api/db/reset`) starts from an empty database.
-
-Query the local database from the panel or with `POST /__yard/dev/api/db/query` `{"sql":"select * from notes","params":[]}`; the response is `{columns, rows, meta}` or `{error}`. `yard db query` still targets the hosted database, not this one.
-
-## Rooms
-
-A service that declares `rooms` runs them locally with the same room type contract as hosted: `env.<binding>`, `ctx.acceptWebSocket`, storage, alarms, and the persona's identity headers on the upgrade request. Its banner line ends with `rooms=Room`. Storage lives under `.yard/dev/rooms/<service>/` and survives restarts. `--reset-rooms` (or `POST /__yard/dev/api/rooms/reset`) deletes `.yard/dev/rooms/` and starts every room empty; `--reset-db` leaves rooms alone, and `--reset-rooms` leaves the database alone. Live connections end whenever the runtime restarts, which is every save, so the client's reconnect logic gets exercised early. Contract and examples: [rooms.md](rooms.md).
-
-## Control panel and its API
-
-`http://localhost:9875/__yard/dev/` is a small page over these JSON endpoints, all loopback-only:
-
-| Endpoint | Purpose |
-| --- | --- |
-| `GET /__yard/dev/api/state` | Everything at a glance: URLs, services (mount, access, database, rooms), personas and the current default, runtime state and validation errors, migrations applied and pending, local and remote secret names |
-| `GET /__yard/dev/api/requests?since=<id>&limit=<n>` | Recent requests: method, path, target, status, duration, persona, and `received`: the path (and query) the service got, or with `static: true` the bundle file served without running it. `requests/stream` is the same as Server-Sent Events |
-| `GET /__yard/dev/api/logs?service=<name>&since=<id>` | Console output and exceptions from your services. `logs/stream` for SSE |
-| `POST /__yard/dev/api/persona` | `{"persona": "<id>", "default": true|false}` |
-| `POST /__yard/dev/api/db/query` | `{"sql": "...", "params": []}` against the local database |
-| `POST /__yard/dev/api/migrations/apply` | Apply pending migrations now |
-| `POST /__yard/dev/api/db/reset` | Empty the local database and re-apply |
-| `POST /__yard/dev/api/rooms/reset` | Delete every stored room under `.yard/dev/rooms/`; the database is untouched |
-
-Services with room types add a Rooms card to the page: each room type, its binding, the size stored on disk, and a "Clear stored rooms" button, which calls the rooms reset endpoint.
-
-The terminal request log shows the same: `GET /widget/api/abc/ -> service:api /abc/ 200 1.2ms`, or `GET /widget/api/ -> service:api static /index.html 200 …` for a file. POST requests must send `Content-Type: application/json`. For an automated check, start `yard dev --json`, wait for `ready`, exercise the URLs with curl (choosing personas by cookie), read `/__yard/dev/api/requests` and `/api/logs` for what happened, then stop the process.
-
-## Reload and validation
-
-Every service directory, the landing page directory, `.yard/migrations`, `.yard/settings.json` and the secrets file are watched, including a directory created after `yard dev` starts. Other files in `.yard/dev` (the database, build output, stored rooms) are not. A save re-validates with the same rules as `yard push` (file limits, extensions, `_service.js` present, mount and name rules). A validation error is printed (`validation_error` in JSON mode) and the last good version keeps serving. Changes to code, assets, settings or secrets restart the runtime in well under a second; static files are served fresh from disk.
-
-Open landing page tabs reload themselves after each restart (a small helper is injected into landing page HTML; HTML served by a service is not touched). A validation error or failed restart does not reload, so the tab keeps the last good page.
-
-## What differs from hosted Yard
-
-- The 50 ms CPU budget per request is not enforced locally.
-- Outbound requests to private networks and localhost are blocked as hosted, by address class only (`--allow-local-egress` lifts it).
-- Personas replace Yard Auth; nothing touches the Yard account, and no consent screen appears.
-- `embed.js`, the ownership bridge and `__yard/products` are answered locally; checkout and trial links still go to Yard (logged in, the live project's real checkout, so test buying in a sandbox). A product checkout's `returnTo` to the local page is refused unless `http://localhost:<port>` is one of the project's Yard Auth redirect URIs.
-- Persona purchases are simulated: no webhooks fire, an unfulfilled consumable is never refunded, and the team API (a user's products and the fulfillment endpoints under `/v1/projects/{id}/…`) still reaches Yard, where personas don't exist.
-- No sandboxes, draft gating, dashboard metrics or `yard service logs` for local runs; use the panel's logs.
-- `request.url` is `http://localhost:<port>/...`.
-- The Cache API is unavailable.
-- Live connections to rooms end whenever the runtime restarts, which is every save. Clients reconnect, as they must hosted when the 24 hour session cap closes them.
-
-When behavior must be confirmed with real commerce (a purchase, a trial, a license key), move to a sandbox: `yard push`, publish, `yard sandbox pin <tag> --sandbox preview`.
+Every service directory, the page directory, migrations, settings.json and the secrets file are watched; any save (assets included) re-validates with push's rules, restarts the runtime in under a second and reloads open landing page tabs. The 50 ms CPU budget is not enforced; egress to private networks is blocked unless `--allow-local-egress`; the Cache API is unavailable; `request.url` is `http://localhost:<port>/...`; there is no consent screen, sandbox, draft gating or `yard service logs` (use the panel). Checkout and trial links go to Yard (test buying in a sandbox); a product checkout's `returnTo` to `http://localhost:<port>` is refused unless it is a Yard Auth redirect URI origin; persona purchases fire no webhooks and are never refunded.

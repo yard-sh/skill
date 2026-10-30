@@ -1,35 +1,35 @@
 # Yard Skill
 
-The agent skill for [Yard](https://yard.sh): knowledge files that teach AI coding agents (Claude Code and other skill-aware tools) how to work with the Yard CLI and REST API.
+The agent skill for [Yard](https://yard.sh): knowledge files that teach AI coding agents (Claude Code and other skill-aware tools) how to work with the Yard CLI, Yard's MCP server and the REST API.
 
-When this skill is installed, an agent gains awareness of:
-
-- The `yard` CLI (login, init, projects, releases, sandboxes, channels, service, dev, keys, etc.)
-- The `yard init --spec` and `yard releases publish --spec` JSON shapes for non-interactive use
-- How shipped software uses the REST API: where the generated endpoint reference lives (docs.yard.sh, `llms.txt`, `openapi.json`), the three credentials, the `sandbox` parameter, conditional writes and errors
-- Pricing model details (tiers and tier keys, seat types, volume brackets, Pro-only features)
-- Products sold on top of a tier (one-time add-ons and DLC, consumables, add-on subscriptions): setup, checkout links, reading what a user holds, consumable fulfillment and product webhooks
-- Sandboxes: optional copies of the project, release channels, and the simulated commerce a sandbox carries
-- Custom landing-page authoring (`window.yard`, `data-yard` / `data-action`)
-- Rooms: realtime state and WebSocket connections inside a hosted service, their storage, limits and lifecycle
-- Project templates and the Create in Yard button
-- Common troubleshooting steps
+The skill is deliberately short. Each file holds the facts an agent needs to pick the right command and avoid a trap, and links the page of [Yard's docs](https://docs.yard.sh) that holds the full detail. Every docs page is served as Markdown at its URL plus `.md` (index: https://docs.yard.sh/llms.txt), so the detail is read live rather than copied here and left to go stale.
 
 ## Layout
 
-- `SKILL.md`: entry point loaded into the agent's context (kept short; details live in references)
-- `references/`: deeper docs the agent loads on demand:
-  - `cli-commands.md`: full CLI reference, including settings.json
-  - `pricing-and-licensing.md`: pricing model, license keys, trials, coupons, sandbox commerce
-  - `products.md`: products on top of a tier: types, requirements, settings, checkout, holdings, fulfillment, webhooks
-  - `api-reference.md`: how to find and read the REST API reference, credentials, `sandbox`, conditional writes, errors
-  - `landing-pages.md`: custom landing-page runtime and conventions
-  - `service-and-database.md`: hosted service and database runtime contract and workflow
-  - `local-dev.md`: `yard dev`, personas, the control panel API
-  - `rooms.md`: realtime rooms: declaring room types, the room type contract, connections, storage, limits, lifecycle
-  - `releases-and-updates.md`: releases, channels, GitHub sync, the update server
-  - `templates.md`: making a project template and the Create in Yard button
-  - `troubleshooting.md`: common issues
+- `SKILL.md`: the entry point loaded into the agent's context: ground rules, the first steps of a new project, the MCP server, and a table of which reference to open for each task.
+- `references/`, one file per feature, opened on demand:
+  - `cli.md`: install, sign-in, conventions (`--json`, `--spec`, `--yes`, exit codes), account and team, maintenance
+  - `projects.md`: creating and linking a project, the `init` spec, project settings, launch stages
+  - `project-files.md`: `.yard/settings.json`, push, pull, status and the three-way sync rules
+  - `pricing.md`: tiers, tier keys, seats, volume brackets, trials, gifts
+  - `coupons.md`: discount codes
+  - `products.md`: add-ons, consumables and add-on subscriptions, holdings, fulfillment
+  - `checkout.md`: the hosted checkout URL and its parameters, the return flow, the payouts gate
+  - `license-keys.md`: license keys, device activations, validation
+  - `releases.md`: releases, channels, rollback and pinning, download buttons, GitHub sync
+  - `updates.md`: the update server for installed software
+  - `sandboxes.md`: sandboxes, what serves where, simulated commerce
+  - `landing-pages.md`: custom landing pages and `window.yard`
+  - `services.md`: hosted services, the runtime, the bundle, settings, secrets, logs
+  - `yard-auth.md`: sign-in headers, gated requests, the `__yard/*` endpoints, guests, external apps
+  - `database.md`: Yard DB and migrations
+  - `rooms.md`: realtime rooms
+  - `local-dev.md`: `yard dev`, personas, the control panel
+  - `webhooks.md`: webhook events and verification
+  - `api.md`: where the REST reference lives, credentials and scopes, the `sandbox` parameter, conditional writes, errors
+  - `sales.md`: users and transactions
+  - `templates.md`: project templates and the Create in Yard button
+  - `troubleshooting.md`: an index of error codes and refusals, pointing at the file that explains each
 
 ## Install
 
@@ -47,7 +47,7 @@ yard skill update
 
 ## Contributing
 
-This repo is consumed by anyone with the skill installed, so changes propagate through the parent Yard repository's submodule pointer. Open an issue or PR here for content fixes; coordinate larger restructures with the team first.
+This repo is consumed by anyone with the skill installed, so changes propagate through the parent Yard repository's submodule pointer. Open an issue or PR here for content fixes; coordinate larger restructures with the team first. Keep each file to highlights plus docs links: anything the docs explain belongs there, not here.
 
 ## Releases
 

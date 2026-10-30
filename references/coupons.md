@@ -1,0 +1,9 @@
+# Coupons
+
+Discount codes owned by the team and applied to tiers at checkout. Docs: https://docs.yard.sh/v1/platform/projects/coupons.md (rules), https://docs.yard.sh/v1/platform/getting-started/yard-cli/coupons.md (every flag and sort). Needs `.team_permissions.coupons` (`403 upgrade_required` otherwise).
+
+- `code`: upper-cased with spaces removed, then 4-50 letters, digits, `-` or `_`. `discount_type` is `percentage` (1-100) or `fixed_amount`. In a spec `discount_value` is a percent or **cents**; the flags take `--percent 20` or `--amount 5` (**dollars**).
+- `scope`: `all_projects` (future ones included) or `specific_projects` (`project_ids`, or `--projects <slugs>`). `max_uses` counts across all users (`null` means unlimited). `subscription_duration`: `once` (first payment, the default) or `forever`.
+- Usable only when active, started (`valid_from`), unexpired (`expires_at`) and under `max_uses`; `is_active` is only the switch. Coupons discount tiers only: products sell at full price, and a subscription that starts with a free trial takes no coupon.
+- After the first redemption the discount cannot change and the coupon cannot be deleted; deactivate it instead.
+- `yard coupons list [--json]` (`.items[]`), `show <code>` (`{ coupon, analytics }`), `create <code> --percent N | --amount D [--projects ...] [--max-uses N] [--expires YYYY-MM-DD] [--valid-from ...] [--subscription-duration once|forever]` (or `--spec`; flags win field by field), `generate --count N [--prefix P] [--length N]` plus any create flag (1-100 unique codes, printed once and listed later by `list`), `update <code>` (partial; clear with `--no-expiry`, `--no-valid-from`, `--unlimited-uses` or `null` in a spec; `--activate` / `--deactivate`), `rm <code> [--yes]` (unused coupons only), `transactions <code>`, `validate <code> --project <slug>` (runs the checkout check; exit 1 when unusable, `.valid` in `--json`).

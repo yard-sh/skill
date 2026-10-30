@@ -1,37 +1,27 @@
 # Project templates
 
-A template is a public GitHub repository that anyone can turn into their own Yard project in one click. The official ones live under `github.com/yard-sh/yard-*`; `yard-sh/yard-hello-world` is the minimal example (one public service, a custom landing page, a free tier).
+A template is a public GitHub repository anyone can turn into their own Yard project in one click. The official ones are `github.com/yard-sh/yard-*`; `yard-sh/yard-hello-world` is the minimal example (one public service, a custom landing page, a free tier). The API behind it: https://docs.yard.sh/v1/api/projects/create-project-from-repo.md and https://docs.yard.sh/v1/api/projects/preview-project-from-repo.md.
 
 ## The Create in Yard button
 
-Put this in the template's README, with the repository URL URL-encoded in `repo`:
+In the template's README, with the repository URL URL-encoded in `repo`:
 
 ```html
 <a href="https://dash.yard.sh/projects?action=create&repo=https%3A%2F%2Fgithub.com%2Fowner%2Frepo"><img src="https://yard.sh/create-in-yard.png" width="200" alt="Create in Yard" /></a>
 ```
 
-The link opens the dashboard's create dialog on a preview of the repository (services, landing page, migrations, pricing, products). `repo` must be `https://github.com/<owner>/<repo>` (an optional `.git` or trailing slash is fine); anything else is ignored. The same URL can be pasted into the dialog's "Create from GitHub URL" field.
+It opens the dashboard's create dialog on a preview of the repository (services, landing page, migrations, pricing, products). `repo` must be `https://github.com/<owner>/<repo>` (`.git` or a trailing slash is fine); the same URL can be pasted into the dialog's "Create from GitHub URL" field.
 
 ## What the repository needs
 
-- Public on GitHub, with at least one commit. Git submodules are not included.
-- `.yard/settings.json` at the root (at most 16 KiB), in the current layout (`"version": 9`). Nothing else is required: services, a landing page, migrations, pricing and products are all optional.
-- Every declared service directory holds its files and a `_service.js`. Every product `icon` the settings name exists in the repository (256x256 PNG, JPEG or WebP, at most 1 MiB). A `custom` landing page needs files in its directory, and a `migrations` block needs `.sql` files. Files under the default `.yard/landing-page/` and `.yard/migrations/` count even without a block.
-- The creating team's plan bundle limits (on Basic and Pro: landing page 60 files, 25 MiB each, 100 MiB total; service 600 files, 15 MiB each, 75 MiB total, `_service.js` at most 10 MiB; migrations any number of files, 3 MiB each, 15 MiB total).
-
-Everything is validated before anything is created, so a broken template creates nothing.
+- Public, with at least one commit; submodules are not included. `.yard/settings.json` at the root (at most 16 KiB, `"version": 9`); everything else is optional.
+- Every declared service directory holds `_service.js`; every product `icon` exists (256x256, at most 1 MiB); a `custom` landing page has files; a `migrations` block has `.sql` files. Files under the default `.yard/landing-page/` and `.yard/migrations/` count without a block. The creating team's plan limits apply (bundle sizes, project count, `service`, `custom_project_pages`, `service_rooms`, `yard_auth` for any non-public service).
+- Everything is validated before anything is created, so a broken template creates nothing.
 
 ## What happens when someone uses it
 
-- A new project owned by the user's active team, in `draft`. Its title comes from the repository name (made unique with ` (2)` and so on) and its description from the repository's; its slug is generated from the title.
-- `project_slug` in the template's settings.json is ignored. When the new owner runs `yard init --project <new-slug>` in a fresh directory, the pulled settings.json gets their slug.
-- Pricing comes from the `pricing` block, validated against the team's plan. Without one the project has no tiers (a landing page that isn't for sale yet). Give each tier a `key`.
-- Products come from the `products` block, with their icons, validated against the team's plan (`max_products`) and against the template's own tiers: products need a `pricing` block, and every `requires` key must be one of its tier keys ([products.md](products.md)).
-- Services, the landing page, migrations and download buttons become release `1.0.0`, published to the `Production` channel and deployed.
-- Secrets are not carried (settings.json has none): the owner sets them with `yard service secrets set`, which redeploys the services with them.
-- The project is not linked to the template repository.
-- Plan gates apply up front: services need `service`, a custom page `custom_project_pages`, rooms `service_rooms`, and the team must be under its project limit. A service whose `access` is not `public` also needs `yard_auth` to deploy.
+- A new project owned by the user's active team, in `draft`, titled after the repository (made unique with ` (2)`), with its slug generated from the title; `project_slug` in the template is ignored (the owner's `yard init --project <slug>` writes theirs).
+- Pricing comes from the `pricing` block (validated against the plan; without one the project has no tiers), products from `products` (every `requires` key must be one of the template's tier keys). Give each tier and product a `key`.
+- Services, the landing page, migrations and download buttons become release `1.0.0`, published to `Production` and deployed. Secrets are not carried: the owner sets them with `yard service secrets set`. The project is not linked to the template repository.
 
-## Conventions for a good template
-
-Keep the README short: the Create in Yard button, the URLs the project serves, the directory layout, how the pieces fit together, and the local loop (`yard dev`) plus shipping (`yard push`, `yard releases publish`). Build a template the same way as any project, and test it by creating a project from its URL before sharing the button.
+Keep the README short: the button, the URLs the project serves, the layout, the local loop (`yard dev`) and shipping (`yard push`, `yard releases publish`). Test a template by creating a project from its URL before sharing the button.
