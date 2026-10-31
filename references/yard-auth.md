@@ -15,8 +15,15 @@ Sign-in for projects: the Yard edge authenticates visitors and hands services tr
 | `X-Yard-Sandbox` | the sandbox name, empty for the project itself |
 | `X-Yard-Guest-Id` | the browser's guest id, signed in or out, once it has one |
 
+| Entitlement | Meaning |
+| --- | --- |
+| `none` | signed in, holding none of the project's tiers; a refunded purchase, a past-due or ended subscription and a product on its own all count as `none` |
+| `trial` | a running free trial of a tier, including a subscription not yet charged |
+| `active` | holds a tier, through a one-time purchase or a paid subscription |
+| `team` | a member of the owning team, in any role, whatever they bought; carries no tier |
+
 - No `X-Yard-User-Id` means an anonymous visitor (possible only on `public` services). Clients cannot forge the headers: incoming `X-Yard-*` is stripped.
-- Every member of the owning team, in any role, is `team` everywhere and passes every gate, so the team never buys its own project. Entitlement resolves team, else a paid subscription or purchase (`active`), else a running trial (`trial`), else `none`; canceled, past-due and refunded grant nothing. Verdicts are cached up to 60 s; a long-lived UI polls `__yard/auth/me`.
+- Every member of the owning team, in any role, is `team` everywhere and passes every gate, so the team never buys its own project. Entitlement resolves team, else a paid subscription or purchase (`active`), else a running trial (`trial`), else `none`. Verdicts are cached up to 60 s; a long-lived UI polls `__yard/auth/me`.
 - Gated requests are answered by the edge before your code runs. A navigation (`Sec-Fetch-Dest: document` or `iframe`, or `text/html` in `Accept`): signed out gets a `302` to `__yard/auth/login`, signed in without a purchase on `users` a `302` to the sales page, and signed in outside the team on `team` a `403` "Team only" page. Anything else (`fetch`, curl, a WebSocket): `401 {"error_code": "sign_in_required"}`, `403 {"error_code": "purchase_required"}` or `403 {"error_code": "team_only"}`. So a page's `fetch` sees a lapsed session as a `401`: send the browser to `__yard/auth/login?return=<path>`.
 
 ## `__yard/*` endpoints
