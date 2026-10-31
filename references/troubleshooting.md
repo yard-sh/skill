@@ -26,5 +26,5 @@ Symptom, what it means, and where the detail is. Branch on `error_code` when the
 | A room still runs the old code after publishing | Rooms move to new code seconds to minutes after the service; connections end and clients reconnect; add fallbacks for new message fields (rooms.md) |
 | `license_not_found` for a key bought in a sandbox | Validate and deactivate find sandbox keys only when the body names the sandbox (license-keys.md) |
 | `410 payouts_missing` at checkout | Selling needs payout setup by the team owner; launching does not (checkout.md) |
-| `401 sign_in_required` / `403 purchase_required` from a service `fetch` | The edge gated it: send the browser to `__yard/auth/login?return=<path>` (yard-auth.md) |
+| `401 sign_in_required` / `403 purchase_required` / `403 team_only` from a service `fetch` | The edge gated it: send the browser to `__yard/auth/login?return=<path>`; `team_only` means the account is not on the owning team (yard-auth.md) |
 | `503 products_unavailable` / `fulfillment_unavailable` | Yard could not look it up right now: retry, do not treat as holding nothing (products.md) |

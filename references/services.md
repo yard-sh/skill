@@ -38,7 +38,7 @@ Each entry of `services` in `.yard/settings.json` is the whole declaration; a ch
 
 - `dir`: the bundle directory (directories never nest). `name`: 1-30 lowercase letters, digits and inner hyphens, unique in the release.
 - `url`: default `/<name>`; up to 64 characters of lowercase `/`-separated segments of letters, digits and `._-`, no trailing slash, unique; `/` takes the whole site; the longest match wins; `/__yard` and `/@...` are reserved.
-- `access`: `public` (default), `authenticated` (sign-in required) or `users` (a tier holder, trial or subscriber; products do not count): a complete paywall with no code (yard-auth.md).
+- `access`: `public` (default), `authenticated` (sign-in required), `users` (a tier holder, trial or subscriber; products do not count): a complete paywall with no code, or `team` (members of the owning team only) (yard-auth.md).
 - `database_access`: binds `env.DB`; the release's migrations create the database (a service flagged before the first migration is redeployed with `env.DB` once it exists). `rooms`: rooms.md.
 
 Served at `https://<team>.yard.sh/<slug><url>/` (custom domain: `https://<domain><url>/`), in a sandbox at `/<slug>/@<name><url>/`; `yard service open [--sandbox <name>] [--service <name>]` prints the URL. A path no service claims belongs to the landing page. Service traffic counts toward the plan's request and bandwidth allowance.
@@ -47,7 +47,7 @@ Served at `https://<team>.yard.sh/<slug><url>/` (custom domain: `https://<domain
 
 - `yard service secrets set KEY=VALUE... | list | rm <name> [--sandbox <name>]`: `env.<NAME>` for every service of the project or of one sandbox (separate sets; a new sandbox starts empty). Write-only; each change redeploys the services there at once (rooms follow within seconds to minutes). Names `^[A-Z][A-Z0-9_]{0,63}$`, not `DB`, `ASSETS` or a room binding; up to 32 per scope, 4 KiB each. There are no plain environment variables. Locally, `yard dev` reads `.yard/dev/secrets.env`.
 - `yard service logs [--service <name>] [--sandbox <name>] [--since 2h] [--limit <n>]`: console output, uncaught exceptions and CPU-limit outcomes from the last 24 h (at most 500 lines), visible within about a minute. `yard service check`: validates every bundle offline as a deploy would, lints root-absolute URLs, warns about imports in `_service.js` and about declared room types with no exported class.
-- Any site may frame the landing page or a `public` service; an `authenticated` or `users` service answers with `Content-Security-Policy: frame-ancestors 'self'`. To keep a public service out of frames, answer `frame-ancestors 'none'` from the handler (a directly served file carries no header of yours).
+- Any site may frame the landing page or a `public` service; an `authenticated`, `users` or `team` service answers with `Content-Security-Policy: frame-ancestors 'self'`. To keep a public service out of frames, answer `frame-ancestors 'none'` from the handler (a directly served file carries no header of yours).
 
 ## Workflow
 

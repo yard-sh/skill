@@ -4,20 +4,20 @@ Sign-in for projects: the Yard edge authenticates visitors and hands services tr
 
 ## Access modes and headers
 
-`access` on the service entry (services.md): `public` (everyone), `authenticated` (must sign in), `users` (must hold a tier, a running trial or a subscription; products do not count). Whenever the visitor is signed in, whatever the mode, the request carries:
+`access` on the service entry (services.md): `public` (everyone), `authenticated` (must sign in), `users` (must hold a tier, a running trial or a subscription; products do not count), `team` (members of the owning team only, for internal tools). Whenever the visitor is signed in, whatever the mode, the request carries:
 
 | Header | Value |
 | --- | --- |
 | `X-Yard-User-Id` | the user's id, a lowercase UUID; stable, store it as `TEXT` |
 | `X-Yard-Email` | omitted when the account has none |
-| `X-Yard-Entitlement` | `none`, `trial`, `active` or `owner` |
+| `X-Yard-Entitlement` | `none`, `trial`, `active` or `team` |
 | `X-Yard-Tier` / `X-Yard-Tier-Key` | the display name and the **key** of the tier they hold, sent with `trial` and `active`; gate features on the key |
 | `X-Yard-Sandbox` | the sandbox name, empty for the project itself |
 | `X-Yard-Guest-Id` | the browser's guest id, signed in or out, once it has one |
 
 - No `X-Yard-User-Id` means an anonymous visitor (possible only on `public` services). Clients cannot forge the headers: incoming `X-Yard-*` is stripped.
-- Every member of the owning team is `owner` everywhere, so the team never buys its own project. Entitlement resolves owner, else a paid subscription or purchase (`active`), else a running trial (`trial`), else `none`; canceled, past-due and refunded grant nothing. Verdicts are cached up to 60 s; a long-lived UI polls `__yard/auth/me`.
-- Gated requests are answered by the edge before your code runs. A navigation (`Sec-Fetch-Dest: document` or `iframe`, or `text/html` in `Accept`): signed out gets a `302` to `__yard/auth/login`, and signed in without a purchase on `users` a `302` to the sales page. Anything else (`fetch`, curl, a WebSocket): `401 {"error_code": "sign_in_required"}` or `403 {"error_code": "purchase_required"}`. So a page's `fetch` sees a lapsed session as a `401`: send the browser to `__yard/auth/login?return=<path>`.
+- Every member of the owning team, in any role, is `team` everywhere and passes every gate, so the team never buys its own project. Entitlement resolves team, else a paid subscription or purchase (`active`), else a running trial (`trial`), else `none`; canceled, past-due and refunded grant nothing. Verdicts are cached up to 60 s; a long-lived UI polls `__yard/auth/me`.
+- Gated requests are answered by the edge before your code runs. A navigation (`Sec-Fetch-Dest: document` or `iframe`, or `text/html` in `Accept`): signed out gets a `302` to `__yard/auth/login`, signed in without a purchase on `users` a `302` to the sales page, and signed in outside the team on `team` a `403` "Team only" page. Anything else (`fetch`, curl, a WebSocket): `401 {"error_code": "sign_in_required"}`, `403 {"error_code": "purchase_required"}` or `403 {"error_code": "team_only"}`. So a page's `fetch` sees a lapsed session as a `401`: send the browser to `__yard/auth/login?return=<path>`.
 
 ## `__yard/*` endpoints
 

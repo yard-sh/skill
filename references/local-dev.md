@@ -24,9 +24,9 @@ There is no real Yard Auth locally: a persona decides the `X-Yard-*` headers, `_
 | `trial` (when a tier offers one) | `trial` | the first tier with a trial |
 | `user:<tier key>` (one per tier) | `active` | that tier |
 | `buyer:<product key>` (one per product) | `active` | the first tier that lets them buy it; holds that product |
-| `member` (a team member) | `owner` | |
+| `team` (a team member) | `team` | |
 
-Each signed-in persona has a stable UUID `X-Yard-User-Id` (the same in every project and run; read it from `__yard/auth/me` or `/__yard/dev/api/state`, never hard-code it) and an email like `user-pro@example.com`. Personas come from the project's tiers and products (the published release when logged in, else settings.json). Pick one with `--as`, with the cookie (`curl -H 'Cookie: yard_dev_identity=user:pro' http://localhost:9875/<slug>/api/notes`), with `POST /__yard/dev/api/persona {"persona":"member","default":true}`, or at the picker `/<slug>/__yard/auth/login` (`__yard/auth/logout` clears it). A persona the project no longer has serves as `anonymous` with a warning. Gating, header stripping, `__yard/auth/guest` and the cross-origin rules behave as hosted (yard-auth.md).
+Each signed-in persona has a stable UUID `X-Yard-User-Id` (the same in every project and run; read it from `__yard/auth/me` or `/__yard/dev/api/state`, never hard-code it) and an email like `user-pro@example.com`. Personas come from the project's tiers and products (the published release when logged in, else settings.json). Pick one with `--as`, with the cookie (`curl -H 'Cookie: yard_dev_identity=user:pro' http://localhost:9875/<slug>/api/notes`), with `POST /__yard/dev/api/persona {"persona":"team","default":true}`, or at the picker `/<slug>/__yard/auth/login` (`__yard/auth/logout` clears it). A persona the project no longer has serves as `anonymous` with a warning. Gating, header stripping, `__yard/auth/guest` and the cross-origin rules behave as hosted (yard-auth.md).
 
 ## Database, secrets, rooms, panel
 
