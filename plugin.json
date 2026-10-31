@@ -7,7 +7,7 @@
     "name": "Magic Engineering, LLC"
   },
   "homepage": "https://yard.sh/",
-  "repository": "https://github.com/yard-sh/skills",
+  "repository": "https://github.com/yard-sh/skill",
   "extensions": {
     "com.openai": {
       "interface": {
@@ -25,19 +25,14 @@
         "supportURL": "https://yard.sh/support",
         "privacyPolicyURL": "https://yard.sh/privacy",
         "termsOfServiceURL": "https://yard.sh/terms",
-        "logo": "assets/yard.png",
-        "composerIcon": "assets/yard.png",
-        "logoDark": "assets/yard-dark.png",
-        "composerIconDark": "assets/yard-dark.png",
+        "logo": "./assets/yard.png",
+        "composerIcon": "./assets/yard.png",
+        "logoDark": "./assets/yard-dark.png",
+        "composerIconDark": "./assets/yard-dark.png",
         "brandColor": "#FF4117",
         "brandColorDark": "#FF6A45"
       },
       "review": {
-        "prompts": [
-          "Help me set up a new software project on Yard.",
-          "Show me the recent sales and customers for my Yard projects.",
-          "Help me prepare and publish a release on Yard."
-        ],
         "test_cases": {
           "positive": [
             {
