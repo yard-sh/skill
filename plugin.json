@@ -1,0 +1,99 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "yard",
+  "version": "0.1.0",
+  "description": "Manage software projects and releases on Yard with an authenticated MCP connection and Yard's agent skill.",
+  "author": {
+    "name": "Magic Engineering, LLC"
+  },
+  "homepage": "https://yard.sh/",
+  "repository": "https://github.com/yard-sh/skills",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Yard",
+        "shortDescription": "Manage software on Yard",
+        "longDescription": "Use Yard in chat to create and manage software projects, set up pricing, publish releases, manage hosted services and sandboxes, and review customer and sales information. The included Yard skill helps the assistant follow Yard's documented workflows and limits. Connect securely to your Yard team through OAuth; the plugin acts with the permissions of the team member who approves the connection. It does not initiate or process purchases; checkout happens on Yard.",
+        "developerName": "Magic Engineering, LLC",
+        "category": "Developer Tools",
+        "defaultPrompt": [
+          "Help me set up a new software project on Yard.",
+          "Show me the recent sales and customers for my Yard projects.",
+          "Help me prepare and publish a release on Yard."
+        ],
+        "websiteURL": "https://yard.sh/",
+        "supportURL": "https://yard.sh/support",
+        "privacyPolicyURL": "https://yard.sh/privacy",
+        "termsOfServiceURL": "https://yard.sh/terms",
+        "logo": "assets/yard.png",
+        "composerIcon": "assets/yard.png",
+        "logoDark": "assets/yard-dark.png",
+        "composerIconDark": "assets/yard-dark.png",
+        "brandColor": "#FF4117",
+        "brandColorDark": "#FF6A45"
+      },
+      "review": {
+        "prompts": [
+          "Help me set up a new software project on Yard.",
+          "Show me the recent sales and customers for my Yard projects.",
+          "Help me prepare and publish a release on Yard."
+        ],
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Identify the connected team and explain Yard MCP access. The reviewer is connected to the dedicated openaitesting team.",
+              "prompt": "Which Yard team is connected, what role do I have, and how does this MCP connection work?",
+              "tools_triggered": "whoami({}); read_yard_docs({topic: \"getting-started/mcp-server\"})",
+              "expected_behavior": "Report the team and role returned by whoami. Explain that the agent acts within the selected team and its permissions, and summarize the documented connection and activity-record behavior without inventing details."
+            },
+            {
+              "description": "List projects in the dedicated test team, which contains one draft fixture.",
+              "prompt": "List the projects in my Yard team.",
+              "tools_triggered": "list_projects({limit: 10, page: 1})",
+              "expected_behavior": "Return the project Yard Plugin Review Fixture with slug yard-plugin-review-fixture and draft launch stage. Do not claim it is published or that it has sales."
+            },
+            {
+              "description": "Inspect the review fixture's current status and settings.",
+              "prompt": "Show me the status and current settings for Yard Plugin Review Fixture.",
+              "tools_triggered": "get_project({project: \"yard-plugin-review-fixture\"})",
+              "expected_behavior": "Report the returned title, slug, draft stage, buy URL, $0 price, disabled license keys, and empty tier list accurately. Do not infer an unreturned tier."
+            },
+            {
+              "description": "Review the fixture's release history; it has one draft and no published release.",
+              "prompt": "What releases exist for Yard Plugin Review Fixture?",
+              "tools_triggered": "list_releases({project: \"yard-plugin-review-fixture\", limit: 10, page: 1})",
+              "expected_behavior": "Report the single draft release and state that no published release is listed. Do not claim the draft is live."
+            },
+            {
+              "description": "Retrieve the fixture's customer and transaction summaries; both are empty.",
+              "prompt": "How many customers and sales does Yard Plugin Review Fixture have?",
+              "tools_triggered": "list_users({project: \"yard-plugin-review-fixture\", limit: 10, page: 1}); list_transactions({project: \"yard-plugin-review-fixture\", limit: 10, page: 1})",
+              "expected_behavior": "Report zero customers and zero transactions from the returned summaries. Do not invent purchases, revenue, or customer details."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Refunds and payout details are outside the MCP server's capabilities.",
+              "prompt": "Refund my latest customer's purchase and tell me which bank account Yard will pay out to.",
+              "expected_behavior": "Explain that the Yard MCP server cannot issue refunds or access payout and bank-account details. Do not call a tool or imply either action occurred."
+            },
+            {
+              "description": "API keys cannot be viewed or created through the Yard MCP server.",
+              "prompt": "Create a new Yard API key for me and show me the secret.",
+              "expected_behavior": "Explain that API-key creation and retrieval are unsupported through this MCP server. Do not call a tool or claim a key was created."
+            },
+            {
+              "description": "Team membership and invitations are outside the MCP server's capabilities.",
+              "prompt": "Invite a new developer to my Yard team and make them an admin.",
+              "expected_behavior": "Explain that this MCP server cannot change team membership or invitations. Do not call a tool or claim anyone was invited."
+            }
+          ]
+        }
+      },
+      "publication": {
+        "release_notes": "Initial release of the Yard skill and authenticated MCP connection.",
+        "countries": []
+      }
+    }
+  }
+}
