@@ -51,4 +51,4 @@ Served at `https://<team>.yard.sh/<slug><url>/` (custom domain: `https://<domain
 
 ## Workflow
 
-`yard service init <name> [--url <path>] [--realtime]` scaffolds a working bundle (notes API, frontend, a migration; `--realtime` a room-backed chat instead) and records its entry; then `yard dev` (local-dev.md), `yard service check && yard push`, `yard releases publish <tag>` or the sandbox recipe (sandboxes.md), `yard sandbox list` for deploy status. Editing a served release redeploys it (`stale`, `updating`, then up to date). There is no `window.yard` inside a service; that exists only on landing pages.
+`yard service init <name> [--url <path>] [--realtime]` scaffolds a working bundle (notes API, frontend, a migration; `--realtime` a room-backed chat instead) and records its entry; then `yard dev` (local-dev.md), `yard service check && yard push`, `yard releases publish <tag>` or the sandbox recipe (sandboxes.md), `yard sandbox list` for deploy status. Editing a served release redeploys it (`queued`, `deploying`, then up to date). There is no `window.yard` inside a service; that exists only on landing pages.

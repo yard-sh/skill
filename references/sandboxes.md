@@ -10,7 +10,7 @@ A sandbox is an optional private copy of the project at `https://<team>.yard.sh/
 | rolled back | `sandbox rollback <release>` | that release until the next one lands in the channel |
 | pinned | `sandbox pin [release]`, `promote` | that release until `unpin` |
 
-Pin > rollback > channel. A new sandbox follows nothing and serves nothing until `channel` or `pin`. A rollback is refused (`409`) while pinned. Deploy status after a change: `stale` (a redeploy starts shortly), `updating`, `failed` (the previous version keeps serving; the error is in the bundle, so fix it and push), or up to date.
+Pin > rollback > channel. A new sandbox follows nothing and serves nothing until `channel` or `pin`. A rollback is refused (`409`) while pinned. Deploy status after a change: `queued` (a redeploy starts shortly), `deploying`, `failed` (the previous version keeps serving; the error is in the bundle, so fix it and push), or up to date.
 
 Try a release before users see it, then ship it. This is the one recipe; publish defaults to Production, which the project follows, so the storefront is pinned first:
 
@@ -35,4 +35,4 @@ Promotion (`yard sandbox promote preview`) pins the project to what the sandbox 
 
 `visibility`, `channel`, `rollback`, `pin` and `unpin` act on the project itself unless `--sandbox <name>`; `create <name>` (2-60 letters, digits and hyphens, starting with a letter), `rename <name> <new-name>` (URLs change), `delete <name>` and `promote <from> [--to <sandbox>]` name the sandbox. All take `--project`, `--dir` and `--json`; a release is a tag or UUID.
 
-`yard sandbox list --json`: `{ project: {...}, sandboxes: [...] }`, each with `slug`, `visibility`, `channel`, `pinned_release_id`, `rollback_release_id`, `serving_release`, `releases`, `deploy_status` (`up_to_date`, `stale`, `updating`, `failed`), `deploy_error`, `page_url` and `services[] { name, url }`. `rollback`, `pin`, `unpin` and `promote` answer `{ release_id, version, action, artifacts }` plus `"project": "<slug>"` or `"sandbox": "<name>"`.
+`yard sandbox list --json`: `{ project: {...}, sandboxes: [...] }`, each with `slug`, `visibility`, `channel`, `pinned_release_id`, `rollback_release_id`, `serving_release`, `releases`, `deploy_status` (`up_to_date`, `queued`, `deploying`, `failed`), `deploy_error`, `page_url` and `services[] { name, url }`. `rollback`, `pin`, `unpin` and `promote` answer `{ release_id, version, action, artifacts }` plus `"project": "<slug>"` or `"sandbox": "<name>"`.
