@@ -10,7 +10,7 @@ Symptom, what it means, and where the detail is. Branch on `error_code` when the
 | Projects or coupons missing, or under the wrong username | The CLI acts as one team, stored on the account and shared with the dashboard: `yard team`, `yard team use <username>` (cli.md) |
 | `403 forbidden` | The member's team role does not allow it; upgrading does not help. `403 not_team_owner`: payouts and billing are owner-only |
 | `upgrade_required` | The plan lacks the feature (license keys, activations, API keys, custom page, services, Yard Auth, rooms, coupons): send a spec the plan supports or point to https://yard.sh/pricing. Tier and product plan refusals are plain `400`s naming the rule (pricing.md, products.md) |
-| `project_limit_reached`, `draft_limit_reached`, `channel_limit_reached`, `sandbox_limit_reached`, `413 storage_limit_reached` | A plan limit; `yard me --json` `.team_permissions` has the numbers |
+| `project_limit_reached`, `draft_limit_reached`, `channel_limit_reached`, `sandbox_limit_reached`, `api_key_limit_reached`, `domain_limit_reached`, `webhook_limit_reached`, `413 storage_limit_reached` | A plan limit; `yard me --json` `.team_permissions` has the numbers |
 | `412 stale_base`, `428 base_required` | A release write without, or with a moved, base: read again and redo (api.md, SKILL.md MCP rules) |
 | `yard init` refuses: "no --spec or --project given" | Bare `init` is the interactive wizard; use `--spec -` or `--project <slug>` (projects.md). A hanging `init` has a terminal attached: interrupt it |
 | "<repo> is linked to <project>" | A repository syncs to one project at a time: `yard init --project <slug>` for that project, or `yard github link --move` (releases.md) |
