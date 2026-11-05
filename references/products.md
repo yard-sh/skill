@@ -12,7 +12,7 @@ What a project sells besides its tiers: one-time add-ons and DLC, consumables (g
 
 - `key` (same grammar as tier keys) is permanent: checkout, holdings and webhooks name it. A published key cannot be renamed and keeps its type for good.
 - `requires`: tier keys, any one is enough; empty means anyone signed in, tier or not, so a release can sell products with no tiers. Every required key must be a tier of that release, and a required tier cannot be removed. Holding a tier means bought, claimed free, subscribed or granted; a trial or a past-due subscription does not count. Holdings follow the product's requirement as the scope's release sells it now, not as it was at purchase: adding one applies to past buyers, dropping one restores them. Not meeting it leaves a `one_time` product `active: false`, sets a `subscription` product to end at period end (restored if met again first), and changes nothing for consumables already bought.
-- Price 99 to 1,000,000 cents, always full price (no coupons, gifts, trials or launch discounts). Icons are optional: exactly 256x256 PNG, JPEG or WebP, at most 1 MiB (only the dashboard resizes).
+- Price 99 to 1,000,000 cents, always full price (no coupons, gifts, trials or launch discounts). A `one_time` or `consumable` product may be free (`price_cents: 0`): checkout takes no card and completes at once, and a free consumable left unfulfilled for 3 days is cancelled like a paid one is refunded. A `subscription` product can't be free. Icons are optional: exactly 256x256 PNG, JPEG or WebP, at most 1 MiB (only the dashboard resizes).
 
 ## Setting up
 
