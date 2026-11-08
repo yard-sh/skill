@@ -16,7 +16,7 @@ The tool itself: install, sign-in, the conventions every command follows, accoun
 - No terminal: nothing can answer a prompt. `init` needs `--spec` or `--project`, `projects edit` needs `--spec`. Commands that delete or overwrite refuse without `--yes` and quote what they would have asked (`push` names only file counts; `yard status` lists the files), so a run without `--yes` is a preview.
 - Which project: commands walk up from the cwd to the directory holding `.yard/settings.json`; `--dir <path>` starts elsewhere, `--project <slug-or-id>` names it outright. `--sandbox <name>` targets a sandbox where it applies (default: the project itself). `--release <tag|id>` picks a release; without it, writes go to your open draft (or a new draft from the newest published release) and reads use the draft, else the newest published release.
 - Lists refuse an unknown `--sort` or `--direction`, `--page` below 1 and `--limit` outside 1-100; `--json` lists put rows in `.items`.
-- Exit codes: `0` success, `1` any error, `2` partial push (some files failed), `130` Ctrl-C and `143` SIGTERM (in-flight work is cancelled; a push keeps what it already sent).
+- Exit codes: `0` success, `1` any error, `2` partial push (part of it landed before a refusal), `130` Ctrl-C and `143` SIGTERM (in-flight work is cancelled; a push keeps what it already sent).
 - `cli_outdated` (`426`): the CLI version does not match the server, and every command refuses until `yard update`. Try it first on an unexplained refusal.
 
 ## Account and team
