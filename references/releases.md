@@ -17,7 +17,7 @@ Writes target your open draft (or a new draft from the newest published release)
 - `yard releases publish [tag] [--file <path>]... [--name] [--notes | --notes-file] [--channel <name>] [--spec <file|->]`: uploads the files into the draft (up to 5 GiB each), then publishes it. With `--spec` (`{ project?, tag_name, release_name?, release_notes?, channel?, files? }`) the tag argument and those flags are refused. Without a terminal, the tag and flags are the whole request. A partial upload still publishes without the failed files and exits non-zero; when every file fails nothing is published. `--json`: `{ release: { id, version }, deployed, files, uploaded, failed }`.
 - `yard releases promote <tag|id> --to <channel>`: moves a published release into another channel (nothing is copied); followers of the new channel serve it only if it is the newest there.
 - `yard releases archive <tag|id> [--yes]` (asks first, naming each download file it deletes), `unarchive <tag|id> [--to <channel>]`.
-- `yard releases list [--channel <name> | --drafts | --archived] [--page] [--limit]` (`.items[]`), `show <tag|id>` (files with size, SHA-256 and download count).
+- `yard releases list [--channel <name> | --drafts | --archived] [--page] [--limit]` (`.items[]`), `show <tag|id>` (files with size and SHA-256).
 
 ## GitHub
 
