@@ -6,7 +6,7 @@ The tool itself: install, sign-in, the conventions every command follows, accoun
 
 - `curl -fsSL https://cli.yard.sh | sh` (Windows: `irm https://cli.yard.sh/install.ps1 | iex`). Never pipe the installer into `sudo sh`: it would install the skill for root.
 - `yard login` prints a nine-digit code and opens `https://yard.sh/login/device`. Show the user the code; they paste it there and click Authorize, and the command exits signed in. Works over SSH and in remote workspaces (open the link on any device). Run it in the background if your shell only returns output on exit. The code expires after 15 minutes; cancelling in the browser ends the command at once.
-- A session lasts 90 days (the access token renews itself, the session does not). An account keeps at most 10 CLI sessions: an eleventh sign-in evicts the oldest, which then fails with `401 unauthorized`. There is no token environment variable, so the CLI cannot sign in on CI; automate from CI over the REST API with an API key (api.md).
+- A session lasts 90 days. An account keeps at most 10 CLI sessions: an eleventh sign-in evicts the oldest, which then fails with `401 unauthorized`. There is no token environment variable, so the CLI cannot sign in on CI; automate from CI over the REST API with an API key (api.md).
 - `yard logout` revokes the session and deletes `~/.yard/config.json`.
 
 ## Conventions
