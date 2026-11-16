@@ -22,7 +22,7 @@ The tool itself: install, sign-in, the conventions every command follows, accoun
 ## Account and team
 
 - `yard me --json`: `.team` (`id`, `username`, `role`; `null` with no team), `.team_permissions` (the active team's entitlement: booleans carry `granted`, limits carry `limit` or `unlimited`; `null` with no team) and `.permissions` (the user's own, account-level only). Check `.team_permissions.<name>.granted` before promising a feature; `plan` is a display label.
-- `yard team [--json]`: the team the CLI acts as. `.active_team.username` is the segment projects live under (`https://<username>.yard.sh/<slug>`); it is a team username, not the user's. `yard team use <username>` switches. The choice is stored on the account and shared with the dashboard, so re-check it rather than trusting an earlier answer. `owner` and `admin` run every project command; payouts and billing are owner-only (`403 not_team_owner`).
+- `yard team [--json]`: the team the CLI acts as. `.active_team.username` is the segment projects live under (`https://<username>.yard.sh/<slug>`); it is a team username, not the user's. `yard team use <username> [--json]` switches; its `--json` is what `yard team --json` prints after the switch. The choice is stored on the account and shared with the dashboard, so re-check it rather than trusting an earlier answer. `owner` and `admin` run every project command; payouts and billing are owner-only (`403 not_team_owner`).
 - No team: every team command fails with `403 no_team`. Not a plan problem: send the user to https://yard.sh/finish, then `yard team`.
 
 ## Maintenance
