@@ -22,7 +22,7 @@ Products belong to a release, like pricing. The settings.json `products` block (
 
 ## Selling and holdings
 
-Signed-in visitors who meet the requirement buy on the project page's Products tab, from a custom page with `data-action="checkout" data-product="<key>"` (landing-pages.md), or from a checkout link (checkout.md: `product`, `quantity`, `interval`, `return_to`, `for`, `sandbox`). The return parameters are a hint to refresh, never proof of payment: read the holdings.
+Signed-in visitors who meet the requirement buy from a landing page with `data-action="checkout" data-product="<key>"` (landing-pages.md), or from a checkout link (checkout.md: `product`, `quantity`, `interval`, `return_to`, `for`, `sandbox`). The return parameters are a hint to refresh, never proof of payment: read the holdings.
 
 Holdings have one shape everywhere: `{ tier_keys: ["pro"], products: [{ key, name, type, requires, transaction_id | subscription_id, active, status, quantity?, acquired_at, requirement_met }] }`. Use a product while `active`, and read `requirement_met` rather than comparing `requires` with `tier_keys`. For a product not held yet, offer it when its `requires` is empty or `tier_keys` holds one of its keys. Each unfulfilled consumable purchase is its own entry until it is fulfilled.
 

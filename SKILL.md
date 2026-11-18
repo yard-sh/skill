@@ -35,7 +35,7 @@ description: >-
 
 # Yard
 
-Yard lets developers sell software: checkout with Yard as the merchant of record, for pricing tiers and for products sold on top of a tier, license keys and device activations, release downloads with an update server, custom landing pages, and hosted services with a database, user sign-in (Yard Auth) and realtime rooms. Developers manage it with the `yard` CLI or Yard's MCP server; shipped software integrates through the REST API.
+Yard lets developers sell software: checkout with Yard as the merchant of record, for pricing tiers and for products sold on top of a tier, license keys and device activations, release downloads with an update server, landing pages, and hosted services with a database, user sign-in (Yard Auth) and realtime rooms. Developers manage it with the `yard` CLI or Yard's MCP server; shipped software integrates through the REST API.
 
 Install: `curl -fsSL https://cli.yard.sh | sh` (Windows: `irm https://cli.yard.sh/install.ps1 | iex`). `yard login` prints a nine-digit code and opens `https://yard.sh/login/device`: show the user the code, they authorize, and the command exits signed in (run it in the background if your shell only returns output on exit). `yard <command> --help` is always current.
 
@@ -45,7 +45,7 @@ Install: `curl -fsSL https://cli.yard.sh | sh` (Windows: `irm https://cli.yard.s
 - **Manage with the MCP server or the CLI, integrate with the API.** Projects, pricing, products, releases, pages, services, coupons, users and sales are management work: Yard's MCP tools when connected, otherwise the CLI. The REST API is for shipped software (license validation, updates, subscriptions, products, Yard Auth in external apps). Never create a project over HTTP.
 - **Non-interactive only.** `--json` (result on stdout; messages and errors on stderr) and `--spec <file|->` (JSON input). Never pipe answers into a prompt. Commands that delete or overwrite take `--yes`; a run without it previews the question. Bare `yard init` is for humans.
 - **Teams own everything.** Projects, coupons, API keys and payouts belong to a team; the CLI acts as the active team (`yard team --json` `.active_team`), shared with the dashboard. Projects live at `https://<team>.yard.sh/<slug>/`.
-- **Check entitlements, never assume them.** Read `yard me --json` `.team_permissions` before proposing a feature (`.permissions` is the user's own and gates nothing on a project). Plan-dependent: license keys and activations, custom pages, services, Yard Auth, rooms, coupons, seat pricing, trials, tier and product counts, extra sandboxes and channels, API keys and webhooks (Pro). Never quote a plan's features from memory.
+- **Check entitlements, never assume them.** Read `yard me --json` `.team_permissions` before proposing a feature (`.permissions` is the user's own and gates nothing on a project). Plan-dependent: license keys and activations, landing pages, services, Yard Auth, rooms, coupons, seat pricing, trials, tier and product counts, extra sandboxes and channels, API keys and webhooks (Pro). Never quote a plan's features from memory.
 - **Read errors by `error_code`.** `upgrade_required` or `*_limit_reached`: the plan lacks the feature or hit a limit; send a spec it supports or point to https://yard.sh/pricing (tier and product plan refusals are plain `400`s naming the rule). `forbidden`: the member's team role; upgrading does not help. `no_team`: send the user to https://yard.sh/finish. `not_team_owner`: payouts and billing are owner-only. `cli_outdated`: run `yard update`.
 - **Launch stages are one-way** (`draft` -> `early_access` -> `published`). Never advance one to test: a draft project already serves its pages and services to its own team. Launching needs no payout setup; selling does.
 - **Sandboxes are for testing.** A sandbox (`/<slug>/@<name>/`) is a private copy with its own data, secrets and simulated commerce: purchases, trials and license keys work, no money moves. A sandbox key validates only when the request names its sandbox; shipped software never sends `sandbox`.
@@ -60,7 +60,7 @@ Then cover what the project type needs:
 
 - **Installed software** (desktop app, CLI, binary): publish each version with `yard releases publish` (releases.md) and point the app's updater at the update server with the user's license key (updates.md, license-keys.md); otherwise the buy page has nothing to download.
 - **Web app, API or backend Yard runs:** services.md, yard-auth.md, database.md; realtime belongs in rooms.md. Check the `service` permission while planning, not at push time.
-- **Custom landing page:** `yard init --page`, edit `.yard/landing-page/`, preview with `yard dev` (landing-pages.md).
+- **Landing page (optional):** `yard init --page`, edit `.yard/landing-page/`, preview with `yard dev` (landing-pages.md).
 - **Extras on top of a tier** (DLC, add-ons, consumables, add-on subscriptions): products.md. Only when the software sells extras; they need a tier and a signed-in buyer who holds it.
 - **A template others can start from:** templates.md.
 
@@ -93,7 +93,7 @@ Open only the files whose row the task matches, usually one or two. Each file's 
 | releases.md | publishing a version, channels, rollback, download buttons, storage, GitHub sync | releases, channels, github |
 | updates.md | an app's updater, the update endpoints, beta channels | |
 | sandboxes.md | testing a release or purchase privately, preview, pin, promote, deploy status | sandbox |
-| landing-pages.md | custom page HTML, data-yard, window.yard, ownership, custom domain | init --page |
+| landing-pages.md | landing page HTML, data-yard, window.yard, ownership, custom domain | init --page |
 | services.md | hosted backend, _service.js, routes, static files, secrets, logs | service |
 | yard-auth.md | sign-in, X-Yard-* headers, gating by tier, guests, OIDC in external apps | |
 | database.md | SQL, env.DB, migrations, a failed migration | db |

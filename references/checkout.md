@@ -1,6 +1,6 @@
 # Checkout
 
-Yard's hosted checkout at `pay.yard.sh`; Yard is the merchant of record. Docs: https://docs.yard.sh/v1/platform/payments/checkout.md (parameters, products, gifts, the return flow), https://docs.yard.sh/v1/platform/payments/merchant-of-record.md, https://docs.yard.sh/v1/platform/payments/payouts.md. On a custom landing page `data-action="checkout"` and `window.yard.checkout()` build these links (landing-pages.md).
+Yard's hosted checkout at `pay.yard.sh`; Yard is the merchant of record. Docs: https://docs.yard.sh/v1/platform/payments/checkout.md (parameters, products, gifts, the return flow), https://docs.yard.sh/v1/platform/payments/merchant-of-record.md, https://docs.yard.sh/v1/platform/payments/payouts.md. On a landing page `data-action="checkout"` and `window.yard.checkout()` build these links (landing-pages.md).
 
 `https://pay.yard.sh/<team-username>/<slug>?...` (the first segment is the team's username: `yard team --json` `.active_team.username`):
 

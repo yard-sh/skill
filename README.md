@@ -19,7 +19,7 @@ The skill is deliberately short. Each file holds the facts an agent needs to pic
   - `releases.md`: releases, channels, rollback and pinning, download buttons, GitHub sync
   - `updates.md`: the update server for installed software
   - `sandboxes.md`: sandboxes, what serves where, simulated commerce
-  - `landing-pages.md`: custom landing pages and `window.yard`
+  - `landing-pages.md`: landing pages and `window.yard`
   - `services.md`: hosted services, the runtime, the bundle, settings, secrets, logs
   - `yard-auth.md`: sign-in headers, gated requests, the `__yard/*` endpoints, guests, external apps
   - `database.md`: Yard DB and migrations

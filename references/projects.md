@@ -12,7 +12,7 @@ Links the current directory to a project and writes `.yard/settings.json`. Run `
 | Link | `yard init --project <slug-or-id> --json` | Link an existing project. A fresh directory also pulls what `yard push` would write to (`--no-pull` skips). |
 | Interactive | `yard init` | Humans only. Without a terminal it refuses (in a linked directory it runs as `--project <linked slug>`). |
 
-Flags: `--page` / `--no-page` (scaffold a custom landing page, landing-pages.md; the non-interactive modes default to no page), `--link-repo` / `--no-link-repo` (link the GitHub repository of a clone the Yard GitHub App can reach; the default links when it can and otherwise carries on). Refused in the home directory. `yard init --help` prints the spec.
+Flags: `--page` / `--no-page` (scaffold a landing page, landing-pages.md; the non-interactive modes default to no page), `--link-repo` / `--no-link-repo` (link the GitHub repository of a clone the Yard GitHub App can reach; the default links when it can and otherwise carries on). Refused in the home directory. `yard init --help` prints the spec.
 
 Spec (only `title` and `tiers` are required):
 

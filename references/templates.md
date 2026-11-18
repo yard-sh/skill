@@ -1,6 +1,6 @@
 # Project templates
 
-A template is a public GitHub repository anyone can turn into their own Yard project in one click. The official ones are `github.com/yard-sh/yard-*`; `yard-sh/yard-hello-world` is the minimal example (one public service, a custom landing page, a free tier). The API behind it: https://docs.yard.sh/v1/api/projects/create-project-from-repo.md and https://docs.yard.sh/v1/api/projects/preview-project-from-repo.md.
+A template is a public GitHub repository anyone can turn into their own Yard project in one click. The official ones are `github.com/yard-sh/yard-*`; `yard-sh/yard-hello-world` is the minimal example (one public service, a landing page, a free tier). The API behind it: https://docs.yard.sh/v1/api/projects/create-project-from-repo.md and https://docs.yard.sh/v1/api/projects/preview-project-from-repo.md.
 
 ## The Create in Yard button
 
@@ -15,7 +15,7 @@ It opens the dashboard's create dialog on a preview of the repository (services,
 ## What the repository needs
 
 - Public, with at least one commit; submodules are not included. `.yard/settings.json` at the root (at most 16 KiB, `"version": 9`); everything else is optional.
-- Every declared service directory holds `_service.js`; every product `icon` exists (256x256, at most 1 MiB); a `custom` landing page has files; a `migrations` block has `.sql` files. Files under the default `.yard/landing-page/` and `.yard/migrations/` count without a block. The creating team's plan limits apply (bundle sizes, project count, `service`, `custom_project_pages`, `service_rooms`, `yard_auth` for any non-public service).
+- Every declared service directory holds `_service.js`; every product `icon` exists (256x256, at most 1 MiB); a declared `landing_page` directory has files, with an `index.html`; a `migrations` block has `.sql` files. Files under the default `.yard/landing-page/` and `.yard/migrations/` count without a block. The creating team's plan limits apply (bundle sizes, project count, `service`, `landing_pages`, `service_rooms`, `yard_auth` for any non-public service).
 - Everything is validated before anything is created, so a broken template creates nothing.
 
 ## What happens when someone uses it

@@ -22,7 +22,7 @@ The working directory contract and how it syncs with a release. Docs: https://do
   "project_slug": "my-project",
   "ignore_files": ["*.bak", "drafts/**"],
   "services": [{ "dir": "api", "name": "api", "url": "/api", "access": "authenticated", "database_access": true }],
-  "landing_page": { "type": "custom", "dir": ".yard/landing-page" },
+  "landing_page": { "dir": ".yard/landing-page" },
   "migrations": { "dir": ".yard/migrations" },
   "pricing": { "tiers": [{ "key": "base", "name": "Base", "price_cents": 1900, "is_default": true, "pricing_model": "one_time" }] },
   "products": [{ "key": "gems", "name": "500 Gems", "type": "consumable", "price_cents": 499, "requires": ["base"], "icon": ".yard/products/gems.png" }],
@@ -31,7 +31,7 @@ The working directory contract and how it syncs with a release. Docs: https://do
 ```
 
 - `project_slug`: the project this directory belongs to (a pull keeps yours). `ignore_files`: globs (`**` matches any depth) relative to the landing-page and migrations directories; dotfiles are always ignored; never applies to services.
-- `services[]`: services.md. `landing_page`: `custom` serves `dir`, `default` the dashboard-edited page; no block keeps what the release has (landing-pages.md). `migrations.dir`: database.md. `downloads.buttons`: releases.md.
+- `services[]`: services.md. `landing_page.dir`: where the landing page's files live; without a block, `.yard/landing-page` (landing-pages.md). A block whose directory is empty fails a push, so a mistyped `dir` never takes a page down. An older file's `landing_page.type` is ignored. `migrations.dir`: database.md. `downloads.buttons`: releases.md.
 - `pricing.tiers`, `products`, `downloads.buttons`: when present, a push makes the release match the list exactly (`[]` removes everything); absent means managed elsewhere (dashboard, `yard projects tiers|products`). Give every tier and product a `key` (pricing.md, products.md).
 - The file is parsed non-strictly by the CLI and the server: a misspelled or unknown key, a tier field included, is silently dropped (every `--spec` rejects unknown fields). Re-read the file after editing it.
 - A push sends settings.json first, in the same change as the other bundles; one the server refuses (`400` naming the field) lands nothing. The server rewrites each release's copy on dashboard edits, so `yard status` can show a config diff you did not make; `yard pull` merges it by top-level key.
