@@ -8,7 +8,7 @@ Links the current directory to a project and writes `.yard/settings.json`. Run `
 
 | Mode | Invocation | Use |
 | --- | --- | --- |
-| Spec | `yard init --spec <file\|-> --json` | Create a project from JSON, then pull its draft (settings.json holds the pricing). Refused in a directory already linked to a project. |
+| Spec | `yard init --spec <file\|-> --json` | Create a project from JSON, then pull its draft, tagged `v1.0.0` (settings.json holds the pricing and the starter landing page). Refused in a directory already linked to a project. |
 | Link | `yard init --project <slug-or-id> --json` | Link an existing project. A fresh directory also pulls what `yard push` would write to (`--no-pull` skips). |
 | Interactive | `yard init` | Humans only. Without a terminal it refuses (in a linked directory it runs as `--project <linked slug>`). |
 

@@ -60,7 +60,7 @@ Then cover what the project type needs:
 
 - **Installed software** (desktop app, CLI, binary): publish each version with `yard releases publish` (releases.md) and point the app's updater at the update server with the user's license key (updates.md, license-keys.md); otherwise the buy page has nothing to download.
 - **Web app, API or backend Yard runs:** services.md, yard-auth.md, database.md; realtime belongs in rooms.md. Check the `service` permission while planning, not at push time.
-- **Landing page (optional):** the service at `/`, usually static files. `yard init --page` adds one in `.yard/landing-page/` with starter files; edit them and preview with `yard dev` (landing-pages.md).
+- **Landing page (optional):** the service at `/`, usually static files. A new project's draft already holds a starter one, the static `landing-page` with an `index.html` and `styles.css`, which `yard init` pulls into `.yard/landing-page/`; `yard init --page` adds one to a project whose release has none. Edit it and preview with `yard dev` (landing-pages.md).
 - **Extras on top of a tier** (DLC, add-ons, consumables, add-on subscriptions): products.md. Only when the software sells extras; they need a tier and a signed-in buyer who holds it.
 - **A template others can start from:** templates.md.
 
