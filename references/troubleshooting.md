@@ -20,6 +20,8 @@ Symptom, what it means, and where the detail is. Branch on `error_code` when the
 | Push stops with `conflicts` | A file changed here and in the release: `yard pull --force` or `yard push --force` for those files only (project-files.md) |
 | settings.json "uses the retired ... key" | An old layout (`service` block, `database`, `objects`, room `class`): make the named edit, set `"version": 10`, retry (project-files.md). A GitHub tag with an old layout fails to sync until the next tag |
 | A pushed file is refused by name or extension | Service bundles, the landing page's included, have an extension allowlist and path grammar (services.md) |
+| `the server code didn't build`, a deploy failed naming a file and line | Fix that file: imports are relative paths between `_service.ts`/`_service.js` and `_server/`, never a public file or a package (bundle a package into `_server/`); `yard service check` lists every problem (services.md) |
+| `a service runs one entry` | Keep either `_service.ts` or `_service.js`, not both; files under `_server/` also need one of them (services.md) |
 | `port 9875 is in use`, "another 'yard dev' is already running" | `--port <n>`, or stop the other session (one per working copy) (local-dev.md) |
 | `yard dev`: the runtime download did not verify, or fails to start | Rerun; delete `~/.yard/runtime/` if it persists. Linux needs glibc 2.35+, macOS 13.5+; otherwise test in a sandbox with the pin-first recipe (sandboxes.md) |
 | `yard dev --json` exits with no event | A fatal refusal prints `Error: ...` on stderr; read it (local-dev.md) |

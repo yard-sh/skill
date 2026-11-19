@@ -11,7 +11,7 @@ The working directory contract and how it syncs with a release. Docs: https://do
 │   ├── migrations/0001_init.sql   # default migrations.dir (database.md)
 │   ├── products/gems.png          # default product icon path (products.md)
 │   └── landing-page/index.html    # the landing page, a service at "/" (landing-pages.md)
-└── api/_service.js                # one directory per service (services.md)
+└── api/_service.ts                # one directory per service: entry, _server/, static files (services.md)
 ```
 
 `.yard/settings.json` (`"version": 10`; every block is optional):
