@@ -22,11 +22,13 @@ export default {
 - Hosted `request.url` is `https://<team>.yard.sh/<service-relative path>`: no slug, no mount. Never build absolute URLs from it (redirects, email links, OAuth callbacks). Outbound requests to private networks and localhost answer `403 Egress blocked by Yard`.
 - `env.<SECRET>` holds the secrets, `env.DB` the database when `database_access` is on, `env.<BINDING>` each room type.
 
+A service with no `_service.js` is static: its files and nothing else, with its `404.html` (or a plain Not Found) for paths it has no file for. Deleting `_service.js` makes a service static and adding one back makes it code again. A static service has no database, secrets, logs or rooms; one that declares rooms is not deployed.
+
 ## Paths and files
 
 The service sees its paths rooted at `/` whatever its `url`: `/<slug>/s/abc` arrives as `/abc` (`/<slug>/s` redirects to `/<slug>/s/`). For `GET` and `HEAD`, a path naming a bundle file (`/app.js`) or a folder with an `index.html` is served without running `_service.js`; everything else, and every other method, reaches the handler with the path unchanged. There is no extensionless `.html` mapping. Use relative URLs in frontend code (`fetch("api/notes")`, `href="styles.css"`) so the service works under any mount and in sandboxes; `yard service check` lints root-absolute ones.
 
-One directory per service: `_service.js` plus static files. Dot-files, dot-folders and `node_modules/` are never uploaded. Every other file must fit the rules or the whole push fails: extensions `.html .css .js .mjs .json .svg .png .jpg .jpeg .webp .gif .woff .woff2 .ttf .otf .txt .md .ico .map .wasm .webmanifest`, names of letters, digits and `._-`, `__yard/` reserved, at most 7 nested folders and 200-character paths. `.sql` is rejected (migrations are project-level) and `ignore_files` does not apply, so keep build inputs outside the directory. Counts and sizes come from the plan (`service_max_*`); `_service.js` is at most 10 MiB.
+One directory per service: `_service.js` plus static files. Dot-files, dot-folders and `node_modules/` are never uploaded. Every other file must fit the rules or the whole push fails: extensions `.html .css .js .mjs .json .svg .png .jpg .jpeg .webp .gif .woff .woff2 .ttf .otf .txt .md .ico .map .wasm .webmanifest .mp4 .webm .vtt`, names of letters, digits and `._-`, `__yard/` reserved, at most 7 nested folders and 200-character paths. `.sql` is rejected (migrations are project-level) and `ignore_files` does not apply, so keep build inputs outside the directory. Counts and sizes come from the plan (`service_max_*`); `_service.js` is at most 10 MiB. Video is served with byte ranges, before `_service.js` runs, so players can seek.
 
 ## Settings
 
