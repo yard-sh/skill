@@ -1,6 +1,6 @@
 # Hosted services
 
-A service is a project's server-side code, deployed in a release and run by Yard under a path of the project's URL, with an optional database (database.md), secrets, rooms (rooms.md) and sign-in through Yard Auth (yard-auth.md). Docs: https://docs.yard.sh/v1/platform/services/overview.md, https://docs.yard.sh/v1/platform/services/bundle.md (layout, settings, static assets, limits), https://docs.yard.sh/v1/platform/services/secrets.md, https://docs.yard.sh/v1/platform/projects/allowances.md. Needs `.team_permissions.service`; any `access` other than `public` also needs `yard_auth`.
+A service is a project's server-side code, deployed in a release and run by Yard under a path of the project's URL, with an optional database (database.md), secrets, rooms (rooms.md) and sign-in through Yard Auth (yard-auth.md). Docs: https://docs.yard.sh/v1/platform/services/overview.md, https://docs.yard.sh/v1/platform/services/bundle.md (layout, settings, static assets, limits), https://docs.yard.sh/v1/platform/services/secrets.md, https://docs.yard.sh/v1/platform/projects/allowances.md. Needs `.team_permissions.service`, the landing page included (landing-pages.md); any `access` other than `public` also needs `yard_auth`. When the plan stops including services, every service stops, the landing page among them, and the team is notified; they run again once it does.
 
 ## Runtime
 
@@ -22,13 +22,13 @@ export default {
 - Hosted `request.url` is `https://<team>.yard.sh/<service-relative path>`: no slug, no mount. Never build absolute URLs from it (redirects, email links, OAuth callbacks). Outbound requests to private networks and localhost answer `403 Egress blocked by Yard`.
 - `env.<SECRET>` holds the secrets, `env.DB` the database when `database_access` is on, `env.<BINDING>` each room type.
 
-A service with no `_service.js` is static: its files and nothing else, with its `404.html` (or a plain Not Found) for paths it has no file for. Deleting `_service.js` makes a service static and adding one back makes it code again. A static service has no database, secrets, logs or rooms; one that declares rooms is not deployed.
+A service with no `_service.js` is static: its files and nothing else, with its `404.html` (or a plain Not Found) for paths it has no file for. A landing page is usually one. Deleting `_service.js` makes a service static and adding one back makes it code again. A static service has no database, secrets, logs or rooms; one that declares rooms is not deployed.
 
 ## Paths and files
 
 The service sees its paths rooted at `/` whatever its `url`: `/<slug>/s/abc` arrives as `/abc` (`/<slug>/s` redirects to `/<slug>/s/`). For `GET` and `HEAD`, a path naming a bundle file (`/app.js`) or a folder with an `index.html` is served without running `_service.js`; everything else, and every other method, reaches the handler with the path unchanged. There is no extensionless `.html` mapping. Use relative URLs in frontend code (`fetch("api/notes")`, `href="styles.css"`) so the service works under any mount and in sandboxes; `yard service check` lints root-absolute ones.
 
-One directory per service: `_service.js` plus static files. Dot-files, dot-folders and `node_modules/` are never uploaded. Every other file must fit the rules or the whole push fails: extensions `.html .css .js .mjs .json .svg .png .jpg .jpeg .webp .gif .woff .woff2 .ttf .otf .txt .md .ico .map .wasm .webmanifest .mp4 .webm .vtt`, names of letters, digits and `._-`, `__yard/` reserved, at most 7 nested folders and 200-character paths. `.sql` is rejected (migrations are project-level) and `ignore_files` does not apply, so keep build inputs outside the directory. Counts and sizes come from the plan (`service_max_*`); `_service.js` is at most 10 MiB. Video is served with byte ranges, before `_service.js` runs, so players can seek.
+One directory per service: `_service.js` plus static files. Dot-files, dot-folders and `node_modules/` are never uploaded. Every other file must fit the rules or the whole push fails: extensions `.html .css .js .mjs .json .svg .png .jpg .jpeg .webp .gif .woff .woff2 .ttf .otf .txt .md .ico .map .wasm .webmanifest .mp4 .webm .vtt`, names of letters, digits and `._-`, `__yard/` reserved, at most 7 nested folders and 200-character paths. `.sql` is rejected (migrations are project-level); keep build inputs outside the directory, or leave them out with `ignore_files` (project-files.md). Counts and sizes come from the plan (`service_max_*`); `_service.js` is at most 10 MiB. Video is served with byte ranges, before `_service.js` runs, so players can seek.
 
 ## Settings
 
@@ -43,7 +43,7 @@ Each entry of `services` in `.yard/settings.json` is the whole declaration; a ch
 - `access`: `public` (default), `authenticated` (sign-in required), `users` (a tier holder, trial or subscriber; products do not count): a complete paywall with no code, or `team` (members of the owning team only) (yard-auth.md).
 - `database_access`: binds `env.DB`; the release's migrations create the database (a service flagged before the first migration is redeployed with `env.DB` once it exists). `rooms`: rooms.md.
 
-Served at `https://<team>.yard.sh/<slug><url>/` (custom domain: `https://<domain><url>/`), in a sandbox at `/<slug>/@<name><url>/`; `yard service open [--sandbox <name>] [--service <name>]` prints the URL. A path no service claims belongs to the landing page. Service traffic counts toward the plan's request and bandwidth allowance.
+Served at `https://<team>.yard.sh/<slug><url>/` (custom domain: `https://<domain><url>/`), in a sandbox at `/<slug>/@<name><url>/`; `yard service open [--sandbox <name>] [--service <name>]` prints the URL. The service at `/` is the project's landing page and answers every path no other service claims. Service traffic counts toward the plan's request and bandwidth allowance.
 
 ## Secrets, logs, embedding
 
@@ -53,4 +53,4 @@ Served at `https://<team>.yard.sh/<slug><url>/` (custom domain: `https://<domain
 
 ## Workflow
 
-`yard service init <name> [--url <path>] [--realtime]` scaffolds a working bundle (notes API, frontend, a migration; `--realtime` a room-backed chat instead) and records its entry; then `yard dev` (local-dev.md), `yard service check && yard push`, `yard releases publish <tag>` or the sandbox recipe (sandboxes.md), `yard sandbox list` for deploy status. Editing a served release redeploys it (`queued`, `deploying`, then up to date). There is no `window.yard` inside a service; that exists only on landing pages.
+`yard service init <name> [--url <path>] [--realtime]` scaffolds a working bundle (notes API, frontend, a migration; `--realtime` a room-backed chat instead) and records its entry; then `yard dev` (local-dev.md), `yard service check && yard push`, `yard releases publish <tag>` or the sandbox recipe (sandboxes.md), `yard sandbox list` for deploy status. Editing a served release redeploys it (`queued`, `deploying`, then up to date). `window.yard`, `embed.js` and page analytics go only on the pages of the service at `/` (landing-pages.md); other services read project data from the public API. While the project is a draft, and not private, the team sees a draft banner on every service's pages.

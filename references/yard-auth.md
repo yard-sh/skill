@@ -28,11 +28,11 @@ Sign-in for projects: the Yard edge authenticates visitors and hands services tr
 
 ## `__yard/*` endpoints
 
-Answered by the edge at the project root (`/<slug>/__yard/...`, what the landing page reaches) and under every service (`/<slug>/<service>/__yard/...`), nowhere deeper. Call them with relative URLs from a page at that level (`../__yard/auth/me` from a subfolder).
+Answered by the edge at the project root (`/<slug>/__yard/...`, where the landing page, the service at `/`, reaches them) and under every other service (`/<slug>/<service>/__yard/...`), nowhere deeper. Call them with relative URLs from a page at that level (`../__yard/auth/me` from a subfolder).
 
 - `login?return=<path>`: signs the visitor in (an existing Yard session passes silently) and redirects to `return`, a path relative to where login was called (`/` is the service's root, or the landing page at the project root; anything not starting with `/` falls back to `/`). The first sign-in shows a consent screen once, the owning team included.
 - `logout?return=<path>`: ends the project session (the person stays signed in to Yard).
-- `me`: always `200`: `{ authenticated: true, user_id, email, entitlement, tier?, tier_key? }` or exactly `{ authenticated: false, entitlement: "none" }`.
+- `me`: always `200`: `{ authenticated: true, user_id, email, username?, avatar_url?, entitlement, tier?, tier_key?, holding }` or exactly `{ authenticated: false, entitlement: "none" }`. `holding` is what the visitor holds themselves, as `window.yard.ownership()` reports it (`owned`, `is_trial`, `trial_expires_at`, `trial_used`, `is_subscription`, `transaction_id`, `tier_id`, `tier_key`, `tier_name`): a team member's `entitlement` is `team` while `holding` says what they bought.
 - `guest`: a stable identity for signed-out visitors (guest play). `POST` issues the browser a guest id (kept 400 days), `GET` answers `{ guest: true|false }`, `DELETE` forgets it; the id itself is never returned. From then on every request from the project's own pages, WebSocket upgrades included, carries `X-Yard-Guest-Id`; only the project's pages may issue or forget one (`403 cross_origin`). After a guest signs in both ids arrive: move the guest's rows to the user, then `DELETE`. Never mint your own token.
 - `products` (GET) and `fulfillments/{transaction_id}` (POST): the visitor's product holdings and consumable delivery (products.md).
 

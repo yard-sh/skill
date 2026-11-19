@@ -9,7 +9,7 @@ Symptom, what it means, and where the detail is. Branch on `error_code` when the
 | `403 no_team`, "A team is required" | The account belongs to no team. Not a plan problem: https://yard.sh/finish, then `yard team` (cli.md) |
 | Projects or coupons missing, or under the wrong username | The CLI acts as one team, stored on the account and shared with the dashboard: `yard team`, `yard team use <username>` (cli.md) |
 | `403 forbidden` | The member's team role does not allow it; upgrading does not help. `403 not_team_owner`: payouts and billing are owner-only |
-| `upgrade_required` | The plan lacks the feature (license keys, activations, API keys, landing pages, services, Yard Auth, rooms, coupons): send a spec the plan supports or point to https://yard.sh/pricing. Tier and product plan refusals are plain `400`s naming the rule (pricing.md, products.md) |
+| `upgrade_required` | The plan lacks the feature (license keys, activations, API keys, services and so landing pages, Yard Auth, rooms, coupons): send a spec the plan supports or point to https://yard.sh/pricing. Tier and product plan refusals are plain `400`s naming the rule (pricing.md, products.md) |
 | `project_limit_reached`, `draft_limit_reached`, `channel_limit_reached`, `sandbox_limit_reached`, `api_key_limit_reached`, `domain_limit_reached`, `webhook_limit_reached`, `413 storage_limit_reached` | A plan limit; `yard me --json` `.team_permissions` has the numbers |
 | `412 stale_base`, `428 base_required` | A release write without, or with a moved, base: read again and redo (api.md, SKILL.md MCP rules) |
 | `yard init` refuses: "no --spec or --project given" | Bare `init` is the interactive wizard; use `--spec -` or `--project <slug>` (projects.md). A hanging `init` has a terminal attached: interrupt it |
@@ -18,8 +18,8 @@ Symptom, what it means, and where the detail is. Branch on `error_code` when the
 | `no tier with the key "Pro"`, `the tier "pro" has been published, so its key is fixed`, `requires "Pro", which is not a valid tier key`, `tier_required_by_product` | Tiers and products are addressed by key, never by name; a published key never changes; drop a product's `requires` before removing its tier (pricing.md, products.md) |
 | `product icons declared in ... not found locally`, an icon refused | Fix the `icon` path or `yard pull`; icons are exactly 256x256 PNG, JPEG or WebP, at most 1 MiB (products.md) |
 | Push stops with `conflicts` | A file changed here and in the release: `yard pull --force` or `yard push --force` for those files only (project-files.md) |
-| settings.json "uses the retired ... key" | An old layout (`service` block, `database`, `objects`, room `class`): make the named edit, set `"version": 9`, retry (project-files.md). A GitHub tag with an old layout fails to sync until the next tag |
-| A pushed file is refused by name or extension | Service bundles have an extension allowlist and path grammar; pages allow one subdirectory (services.md, landing-pages.md) |
+| settings.json "uses the retired ... key" | An old layout (`service` block, `database`, `objects`, room `class`): make the named edit, set `"version": 10`, retry (project-files.md). A GitHub tag with an old layout fails to sync until the next tag |
+| A pushed file is refused by name or extension | Service bundles, the landing page's included, have an extension allowlist and path grammar (services.md) |
 | `port 9875 is in use`, "another 'yard dev' is already running" | `--port <n>`, or stop the other session (one per working copy) (local-dev.md) |
 | `yard dev`: the runtime download did not verify, or fails to start | Rerun; delete `~/.yard/runtime/` if it persists. Linux needs glibc 2.35+, macOS 13.5+; otherwise test in a sandbox with the pin-first recipe (sandboxes.md) |
 | `yard dev --json` exits with no event | A fatal refusal prints `Error: ...` on stderr; read it (local-dev.md) |

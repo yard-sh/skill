@@ -10,12 +10,12 @@ In the template's README, with the repository URL URL-encoded in `repo`:
 <a href="https://dash.yard.sh/projects?action=create&repo=https%3A%2F%2Fgithub.com%2Fowner%2Frepo"><img src="https://yard.sh/create-in-yard.png" width="200" alt="Create in Yard" /></a>
 ```
 
-It opens the dashboard's create dialog on a preview of the repository (services, landing page, migrations, pricing, products). `repo` must be `https://github.com/<owner>/<repo>` (`.git` or a trailing slash is fine); the same URL can be pasted into the dialog's "Create from GitHub URL" field.
+It opens the dashboard's create dialog on a preview of the repository (services, the landing page among them, migrations, pricing, products). `repo` must be `https://github.com/<owner>/<repo>` (`.git` or a trailing slash is fine); the same URL can be pasted into the dialog's "Create from GitHub URL" field.
 
 ## What the repository needs
 
-- Public, with at least one commit; submodules are not included. `.yard/settings.json` at the root (at most 16 KiB, `"version": 9`); everything else is optional.
-- Every declared service directory holds `_service.js`; every product `icon` exists (256x256, at most 1 MiB); a declared `landing_page` directory has files, with an `index.html`; a `migrations` block has `.sql` files. Files under the default `.yard/landing-page/` and `.yard/migrations/` count without a block. The creating team's plan limits apply (bundle sizes, project count, `service`, `landing_pages`, `service_rooms`, `yard_auth` for any non-public service).
+- Public, with at least one commit; submodules are not included. `.yard/settings.json` at the root (at most 16 KiB, `"version": 10`; an older file reads as it converts, project-files.md); everything else is optional.
+- Every declared service directory has files to deploy (a landing page is a service at `/`, usually static); every product `icon` exists (256x256, at most 1 MiB); a `migrations` block has `.sql` files. Files under the default `.yard/migrations/` count without a block. The creating team's plan limits apply (bundle sizes, project count, `service`, `service_rooms`, `yard_auth` for any non-public service).
 - Everything is validated before anything is created, so a broken template creates nothing.
 
 ## What happens when someone uses it

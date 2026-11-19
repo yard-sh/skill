@@ -12,7 +12,7 @@ Links the current directory to a project and writes `.yard/settings.json`. Run `
 | Link | `yard init --project <slug-or-id> --json` | Link an existing project. A fresh directory also pulls what `yard push` would write to (`--no-pull` skips). |
 | Interactive | `yard init` | Humans only. Without a terminal it refuses (in a linked directory it runs as `--project <linked slug>`). |
 
-Flags: `--page` / `--no-page` (scaffold a landing page, landing-pages.md; the non-interactive modes default to no page), `--link-repo` / `--no-link-repo` (link the GitHub repository of a clone the Yard GitHub App can reach; the default links when it can and otherwise carries on). Refused in the home directory. `yard init --help` prints the spec.
+Flags: `--page` / `--no-page` (set up a landing page, the service at `/`, landing-pages.md; the non-interactive modes default to no page), `--link-repo` / `--no-link-repo` (link the GitHub repository of a clone the Yard GitHub App can reach; the default links when it can and otherwise carries on). Refused in the home directory. `yard init --help` prints the spec.
 
 Spec (only `title` and `tiers` are required):
 
@@ -36,7 +36,7 @@ Spec (only `title` and `tiers` are required):
 }
 ```
 
-`--json`: `{ project: { id, slug, title, buy_url, profile_url, created }, settings_file, github_repo_linked, landing_page }`. A plan refusal about tiers (count, trials, seat pricing) is a plain `400` naming the rule, not `upgrade_required`.
+`--json`: `{ project: { id, slug, title, buy_url, profile_url, created }, settings_file, github_repo_linked, landing_page, pulled }`: `landing_page` (with `--page`) names the landing page's `service` and `dir`, the files `written`, `skipped` and `uploaded`, and a `preview_url`; `pulled` (a linking init) lists what came down, `landing_page` naming the landing page service it pulled. A plan refusal about tiers (count, trials, seat pricing) is a plain `400` naming the rule, not `upgrade_required`.
 
 ## yard projects
 
