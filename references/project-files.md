@@ -14,7 +14,7 @@ The working directory contract and how it syncs with a release. Docs: https://do
 └── api/_service.ts                # one directory per service: entry, _server/, static files (services.md)
 ```
 
-`.yard/settings.json` (`"version": 10`; every block is optional):
+`.yard/settings.json` (`"version": 10`). Every block is optional to read, but the files `yard init` and the server write list them all, empty or at their defaults, so a new file shows every field:
 
 ```json
 {
@@ -22,8 +22,8 @@ The working directory contract and how it syncs with a release. Docs: https://do
   "project_slug": "my-project",
   "ignore_files": ["*.bak", "drafts/**"],
   "services": [
-    { "dir": ".yard/landing-page", "name": "landing-page", "url": "/" },
-    { "dir": "api", "name": "api", "url": "/api", "access": "authenticated", "database_access": true }
+    { "dir": ".yard/landing-page", "name": "landing-page", "url": "/", "access": "public", "database_access": false, "rooms": [] },
+    { "dir": "api", "name": "api", "url": "/api", "access": "authenticated", "database_access": true, "rooms": [] }
   ],
   "migrations": { "dir": ".yard/migrations" },
   "pricing": { "tiers": [{ "key": "base", "name": "Base", "price_cents": 1900, "is_default": true, "pricing_model": "one_time" }] },
@@ -33,8 +33,8 @@ The working directory contract and how it syncs with a release. Docs: https://do
 ```
 
 - `project_slug`: the project this directory belongs to (a pull keeps yours). `ignore_files`: globs (`**` matches any depth) relative to each service's directory and the migrations directory; dotfiles are always ignored.
-- `services[]`: services.md; the entry with `"url": "/"` is the landing page (landing-pages.md). `migrations.dir`: database.md. `downloads.buttons`: releases.md.
-- `pricing.tiers`, `products`, `downloads.buttons`: when present, a push makes the release match the list exactly (`[]` removes everything); absent means managed elsewhere (dashboard, `yard projects tiers|products`). Give every tier and product a `key` (pricing.md, products.md).
+- `services[]`: services.md; the entry with `"url": "/"` is the landing page (landing-pages.md). `migrations.dir`: database.md; the release records it, so changing it (here, or in the dashboard's settings.json) moves the release's migrations, and `yard pull` moves the local folder. `downloads.buttons`: releases.md.
+- `pricing.tiers`, `products`, `downloads.buttons`: when present, a push or GitHub sync makes the release match the list exactly (`[]` removes everything); absent means managed elsewhere (dashboard, `yard projects tiers|products`). New files write these blocks empty, so delete a block from a committed file to keep managing that section elsewhere. Give every tier and product a `key` (pricing.md, products.md).
 - The file is parsed non-strictly by the CLI and the server: a misspelled or unknown key, a tier field included, is silently dropped (every `--spec` rejects unknown fields). Re-read the file after editing it.
 - A push sends settings.json first, in the same change as the other bundles; one the server refuses (`400` naming the field) lands nothing. The server rewrites each release's copy on dashboard edits, so `yard status` can show a config diff you did not make; `yard pull` merges it by top-level key.
 - A file older than version 10 is rewritten as version 10 by the first `yard` command run in the directory, which says so (on stderr with `--json`): its `landing_page` block, or files in `.yard/landing-page/` without one, become the service `landing-page` (or the next free name) at `/`, and every other key stays where it was. A version 10 file with a `landing_page` block is rejected. Retired layouts (versions 4 to 8: a top-level `service` block, per-directory settings files, a `database` key, `objects`, a room `class`) are rejected with an error naming the edit: make it, set `"version": 10`, retry.
