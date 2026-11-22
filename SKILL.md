@@ -101,6 +101,6 @@ Open only the files whose row the task matches, usually one or two. Each file's 
 | local-dev.md | running locally, personas, the control panel, dev --json events | dev |
 | webhooks.md | being notified of sales or renewals, X-Yard-Signature, event_id | |
 | api.md | the REST reference, API keys and scopes, the sandbox parameter, conditional writes, errors | keys |
-| sales.md | customers, transactions, refunds, extending a trial | users, transactions |
+| sales.md | users, transactions, refunds, extending a trial | users, transactions |
 | templates.md | a template repository, the Create in Yard button | |
 | troubleshooting.md | an error code or refusal message you do not recognise | |
