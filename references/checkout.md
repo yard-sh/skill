@@ -13,7 +13,7 @@ Yard's hosted checkout at `pay.yard.sh`; Yard is the merchant of record. Docs: h
 | `gift` | gift purchase on a `gift_enabled` one-time tier (`true`, `1` or bare) |
 | `ref` | affiliate code (credited on one-time purchases and free claims only) |
 | `sandbox` | sandbox name: simulated checkout, no card charged |
-| `return_to`, `for` | with `product` only: where to send the buyer afterwards, and the user id the purchase is for, as the service got it in `X-Yard-User-Id` (anyone else is asked to switch accounts) |
+| `return_to`, `for` | with `product` only: where to send the buyer afterwards, and the user id the purchase is for, as the project's service got it in `X-Yard-User-Id` (anyone else is asked to switch accounts; it must be the id from the project being bought, since another project's id names no one) |
 
 Invalid values are ignored. Trials go to `https://yard.sh/trial/<team-username>/<slug>` with `tier` and `sandbox` only.
 
