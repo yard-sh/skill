@@ -14,7 +14,7 @@ The working directory contract and how it syncs with a release. Docs: https://do
 └── api/_service.ts                # one directory per service: entry, _server/, static files (services.md)
 ```
 
-`.yard/settings.json` (`"version": 10`). Every block is optional to read, but the files `yard init` and the server write list them all, empty or at their defaults, so a new file shows every field:
+`.yard/settings.json` (`"version": 10`). Every block is optional to read, but the files `yard init` and the server write list them all (except `auth`, below), empty or at their defaults, so a new file shows every field:
 
 ```json
 {
@@ -34,6 +34,7 @@ The working directory contract and how it syncs with a release. Docs: https://do
 
 - `project_slug`: the project this directory belongs to (a pull keeps yours). `ignore_files`: globs (`**` matches any depth) relative to each service's directory and the migrations directory; dotfiles are always ignored.
 - `services[]`: services.md; the entry with `"url": "/"` is the landing page (landing-pages.md). `migrations.dir`: database.md; the release records it, so changing it (here, or in the dashboard's settings.json) moves the release's migrations, and `yard pull` moves the local folder. `downloads.buttons`: releases.md.
+- `auth.sign_in_path` (`"auth": { "sign_in_path": "/login" }`): the project's own sign-in page for project accounts (yard-auth.md). Set only in this file: no block means none, and written files carry the block only when a path is set. Rules: starts with `/`, at most 256 characters, letters, digits and `. _ ~ -` between single slashes, no `.` or `..` segment, and a first segment that is not `__yard` and does not start with `@`; a push that breaks one is refused with the reason. It travels with the release, needs no plan, and does nothing while project accounts are off.
 - `pricing.tiers`, `products`, `downloads.buttons`: when present, a push or GitHub sync makes the release match the list exactly (`[]` removes everything); absent means managed elsewhere (dashboard, `yard projects tiers|products`). New files write these blocks empty, so delete a block from a committed file to keep managing that section elsewhere. Give every tier and product a `key` (pricing.md, products.md).
 - The file is parsed non-strictly by the CLI and the server: a misspelled or unknown key, a tier field included, is silently dropped (every `--spec` rejects unknown fields). Re-read the file after editing it.
 - A push sends settings.json first, in the same change as the other bundles; one the server refuses (`400` naming the field) lands nothing. The server rewrites each release's copy on dashboard edits, so `yard status` can show a config diff you did not make; `yard pull` merges it by top-level key.
