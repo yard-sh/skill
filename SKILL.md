@@ -66,7 +66,7 @@ Then cover what the project type needs:
 
 ## Hosted services loop
 
-`yard service init <name>` scaffolds a bundle whose backend is `_service.js` (or `_service.ts`) exporting a fetch handler, with private modules under `_server/` that Yard builds into one module on deploy: no ports, no `listen()`, no Express, relative URLs only. Never build auth: Yard Auth gives the service trusted `X-Yard-*` headers, `"access": "users"` is a paywall with no code, and tier features are gated on `X-Yard-Tier-Key`. The loop: `yard dev` (local), `yard push` (into a draft; nothing serves a draft), `yard releases publish <tag>` (go live in `Production`), `yard sandbox list` (deploy status). To try it first, pin the storefront and use a sandbox (sandboxes.md).
+`yard service init <name>` scaffolds a bundle whose backend is `_service.js` (or `_service.ts`) exporting a fetch handler, with private modules under `_server/` that Yard builds into one module on deploy: no ports, no `listen()`, no Express, relative URLs only. Never build sessions, password storage or OAuth: Yard Auth gives the service trusted `X-Yard-*` headers, `"access": "users"` is a paywall with no code, and tier features are gated on `X-Yard-Tier-Key`. The one auth screen a team builds is the sign-in page for project accounts, and only when the project has them on and its settings.json names `auth.sign_in_path`: yard mails the link and runs everything behind the page (yard-auth.md). The loop: `yard dev` (local), `yard push` (into a draft; nothing serves a draft), `yard releases publish <tag>` (go live in `Production`), `yard sandbox list` (deploy status). To try it first, pin the storefront and use a sandbox (sandboxes.md).
 
 ## Yard's MCP server
 
@@ -95,7 +95,7 @@ Open only the files whose row the task matches, usually one or two. Each file's 
 | sandboxes.md | testing a release or purchase privately, preview, pin, promote, deploy status | sandbox |
 | landing-pages.md | the landing page (the service at `/`), data-yard, window.yard, ownership, custom domain | init --page |
 | services.md | hosted backend, server code (_service.ts/_service.js, _server/, TypeScript), static services, routes, files, secrets, logs | service |
-| yard-auth.md | sign-in, X-Yard-* headers, gating by tier, guests, OIDC in external apps | |
+| yard-auth.md | sign-in, X-Yard-* headers, gating by tier, guests, OIDC in external apps, project accounts and their sign-in page | |
 | database.md | SQL, env.DB, migrations, a failed migration | db |
 | rooms.md | WebSockets, realtime, presence, multiplayer, room storage, alarms | service init --realtime |
 | local-dev.md | running locally, personas, the control panel, dev --json events | dev |

@@ -15,7 +15,7 @@ Flags: `--port <n>` (9875), `--dir`, `--project`, `--as <persona>`, `--root` (se
 
 ## Personas
 
-There is no real Yard Auth locally: a persona decides the `X-Yard-*` headers, `__yard/auth/me`, `__yard/products` and `window.yard.ownership()`.
+There is no real Yard Auth locally: a persona decides the `X-Yard-*` headers, `__yard/auth/me`, `__yard/products` and `window.yard.ownership()`, or a sign-in page's emailed link does, printed instead of mailed (below).
 
 | Persona | Entitlement | Tier |
 | --- | --- | --- |
@@ -28,6 +28,8 @@ There is no real Yard Auth locally: a persona decides the `X-Yard-*` headers, `_
 
 Each signed-in persona has a fixed made-up UUID `X-Yard-User-Id` (the same in every project and run, where hosted each project knows a person by its own id; read it from `__yard/auth/me` or `/__yard/dev/api/state`, never hard-code it) and an email like `user-pro@example.com`. Personas come from the project's tiers and products (the published release when logged in, else settings.json). Pick one with `--as`, with the cookie (`curl -H 'Cookie: yard_dev_identity=user:pro' http://localhost:9875/<slug>/api/notes`), with `POST /__yard/dev/api/persona {"persona":"team","default":true}`, or at the picker `/<slug>/__yard/auth/login` (`__yard/auth/logout` clears it). The `team` persona holds team access as hosted (yard-auth.md), kept in a second cookie, `yard_dev_team`: picking any other persona clears it and `logout` leaves it, so after `logout` `team` services still open and are told the visitor is the team member. `yard_dev_identity=team` alone holds team access too. A persona the project no longer has serves as `anonymous` with a warning. Gating, header stripping, `__yard/auth/guest` and the cross-origin rules behave as hosted (yard-auth.md).
 
+A project accounts sign-in page works locally too: `yard dev` answers its two calls as hosted (yard-auth.md, Project accounts) but sends no mail. The link is printed in the terminal and listed on the panel's Sign-in links card; it goes to the page `auth.sign_in_path` names (without one the first call refuses with `sign_in_page_missing`). Following it signs the browser in as that address, a made-up user with no username whose id comes from the address, and leaves `yard_dev_team` alone, so a `team` persona keeps team access. Every address gets a link, the developer's own included, since nothing is looked up. A link works once for 15 minutes and another browser is asked to confirm, as hosted; with no switch, drafts or limits locally, the refusals those cause never come. Docs: https://docs.yard.sh/v1/platform/services/local-development.md, section Signing in by emailed link.
+
 ## Database, secrets, rooms, panel
 
 - `env.DB` is `.yard/dev/data.sqlite`; `.yard/migrations/*.sql` are applied in order and recorded as hosted (a failing file leaves its earlier statements applied: fix it to re-run from the top, or `--reset-db`). New files apply on save. `yard db query` still targets the hosted database; query the local one from the panel or with `POST /__yard/dev/api/db/query {"sql":"...","params":[]}`.
@@ -37,4 +39,4 @@ Each signed-in persona has a fixed made-up UUID `X-Yard-User-Id` (the same in ev
 
 ## Differences from hosted
 
-Every service directory, migrations, settings.json and the secrets file are watched; any save (assets included) re-validates with push's rules, restarts the runtime in under a second and reloads open landing page tabs. The 50 ms CPU budget is not enforced; egress to private networks is blocked unless `--allow-local-egress`; the Cache API is unavailable; `request.url` is `http://localhost:<port>/...`; there is no consent screen, sandbox, draft gating or `yard service logs` (use the panel). Checkout and trial links go to Yard (test buying in a sandbox); a product checkout's `returnTo` to `http://localhost:<port>` is refused unless it is a Yard Auth redirect URI origin; persona purchases fire no webhooks and are never refunded.
+Every service directory, migrations, settings.json and the secrets file are watched; any save (assets included) re-validates with push's rules, restarts the runtime in under a second and reloads open landing page tabs. The 50 ms CPU budget is not enforced; egress to private networks is blocked unless `--allow-local-egress`; the Cache API is unavailable; `request.url` is `http://localhost:<port>/...`; there is no consent screen, sandbox, draft gating, sign-in mail (the link is printed) or `yard service logs` (use the panel). Checkout and trial links go to Yard (test buying in a sandbox); a product checkout's `returnTo` to `http://localhost:<port>` is refused unless it is a Yard Auth redirect URI origin; persona purchases fire no webhooks and are never refunded.
