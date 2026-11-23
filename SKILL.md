@@ -88,19 +88,19 @@ Open only the files whose row the task matches, usually one or two. Each file's 
 | pricing.md | tiers, prices, one-time vs subscription, seats, trials, gifts | projects tiers |
 | coupons.md | discount codes, generating, deactivating, redemptions | coupons |
 | products.md | add-ons, DLC, consumables, add-on subscriptions, holdings, fulfillment | projects products |
-| checkout.md | buy or trial links, pay.yard.sh parameters, return_to, the payouts gate, price order | |
+| checkout.md | buy or trial links, pay.yard.sh parameters, return_to, the payouts gate, price order, buying with a project account or signed out, sign in required for purchases | |
 | license-keys.md | license keys, device activations, validating a key from shipped software | projects edit |
 | releases.md | publishing a version, channels, rollback, download buttons, storage, GitHub sync | releases, channels, github |
 | updates.md | an app's updater, the update endpoints, beta channels | |
 | sandboxes.md | testing a release or purchase privately, preview, pin, promote, deploy status | sandbox |
 | landing-pages.md | the landing page (the service at `/`), data-yard, window.yard, ownership, custom domain | init --page |
 | services.md | hosted backend, server code (_service.ts/_service.js, _server/, TypeScript), static services, routes, files, secrets, logs | service |
-| yard-auth.md | sign-in, X-Yard-* headers, gating by tier, guests, OIDC in external apps, project accounts and their sign-in page | |
+| yard-auth.md | sign-in, X-Yard-* headers, gating by tier, guests, OIDC in external apps, project accounts, their sign-in page and deleting one | |
 | database.md | SQL, env.DB, migrations, a failed migration | db |
 | rooms.md | WebSockets, realtime, presence, multiplayer, room storage, alarms | service init --realtime |
 | local-dev.md | running locally, personas, the control panel, dev --json events | dev |
 | webhooks.md | being notified of sales or renewals, X-Yard-Signature, event_id | |
 | api.md | the REST reference, API keys and scopes, the sandbox parameter, conditional writes, errors | keys |
-| sales.md | users, transactions, refunds, extending a trial | users, transactions |
+| sales.md | users, transactions, receipt addresses, refunds, extending a trial, the subscription API's user id | users, transactions |
 | templates.md | a template repository, the Create in Yard button | |
 | troubleshooting.md | an error code or refusal message you do not recognise | |

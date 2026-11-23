@@ -1,6 +1,6 @@
 # REST API
 
-For shipped software and automation: validating licenses, serving updates, managing a user's existing subscription, reading and fulfilling products, Yard Auth in external apps, publishing from CI. An agent managing the team's own catalog uses Yard's MCP server or the CLI instead; never create a project over HTTP.
+For shipped software and automation: validating licenses, serving updates, managing a user's existing subscription (named by their project user id, never by email), reading and fulfilling products, Yard Auth in external apps, publishing from CI. An agent managing the team's own catalog uses Yard's MCP server or the CLI instead; never create a project over HTTP.
 
 ## Where the reference lives
 
