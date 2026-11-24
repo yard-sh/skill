@@ -13,6 +13,7 @@ Tiers decide what a buyer pays and how seats are counted. Docs: https://docs.yar
 - A published tier's key is fixed: `yard projects tiers edit` and the dashboard refuse to change it. Add a tier under the new key and `rm` the old one instead.
 - Tier ids change with every pricing revision, so code matches on keys: `X-Yard-Tier-Key` in services (yard-auth.md), `tier_key` on webhooks and in `window.yard.ownership()`, `?tier=` at checkout (id or key, never a name).
 - Products can name tiers they require by key, and a required tier cannot be removed until the requirement is dropped (products.md). Products that require none need no tiers at all.
+- Download access rules (`downloads.access`, releases.md) can link files to tiers by key or to any tier; a tier a rule names cannot be removed until the rule no longer names it.
 
 ## Seats and volume
 

@@ -90,7 +90,7 @@ Open only the files whose row the task matches, usually one or two. Each file's 
 | products.md | add-ons, DLC, consumables, add-on subscriptions, holdings, fulfillment | projects products |
 | checkout.md | buy or trial links, pay.yard.sh parameters, return_to, the payouts gate, price order, buying with a project account or signed out, sign in required for purchases | |
 | license-keys.md | license keys, device activations, validating a key from shipped software | projects edit |
-| releases.md | publishing a version, channels, rollback, download buttons, storage, GitHub sync | releases, channels, github |
+| releases.md | publishing a version, channels, rollback, download buttons, download access, public files, storage, GitHub sync | releases, channels, github |
 | updates.md | an app's updater, the update endpoints, beta channels | |
 | sandboxes.md | testing a release or purchase privately, preview, pin, promote, deploy status | sandbox |
 | landing-pages.md | the landing page (the service at `/`), data-yard, window.yard, ownership, custom domain | init --page |
