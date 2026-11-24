@@ -87,7 +87,7 @@ Open only the files whose row the task matches, usually one or two. Each file's 
 | project-files.md | settings.json keys, pushing or pulling files, sync conflicts, what a draft holds | push, pull, status, ls, init --page |
 | pricing.md | tiers, prices, one-time vs subscription, seats, trials, gifts | projects tiers |
 | coupons.md | discount codes, generating, deactivating, redemptions | coupons |
-| products.md | add-ons, DLC, consumables, add-on subscriptions, holdings, fulfillment | projects products |
+| products.md | add-ons, DLC, consumables, add-on subscriptions, holdings, fulfillment, giving a product to a user | projects products |
 | checkout.md | buy or trial links, pay.yard.sh parameters, return_to, the payouts gate, price order, buying with a project account or signed out, sign in required for purchases | |
 | license-keys.md | license keys, device activations, validating a key from shipped software | projects edit |
 | releases.md | publishing a version, channels, rollback, download buttons, download access, public files, storage, GitHub sync | releases, channels, github |
